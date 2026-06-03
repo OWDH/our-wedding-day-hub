@@ -273,6 +273,13 @@
     .msg-summary-preview{font-family:var(--font-sans);color:var(--ink-muted);font-size:.8rem;line-height:1.55;margin:0}
     .msg-summary-link{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-sans);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);text-decoration:none}
     .msg-summary-link:hover{color:var(--gold)}
+    .avail-preset-btn{border:.5px solid var(--ink-rule);background:var(--cream-deep);color:var(--ink-muted);font-family:var(--font-sans);font-size:.62rem;letter-spacing:.06em;padding:4px 10px;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .avail-preset-btn:hover{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+    .testimonial-manage-item{background:var(--cream-warm);border:.5px solid var(--ink-rule);padding:14px 16px;margin-bottom:8px}
+    .testimonial-manage-quote{font-family:var(--font-serif);font-style:italic;font-size:.95rem;color:var(--ink-mid);line-height:1.65;margin-bottom:6px}
+    .testimonial-manage-meta{font-family:var(--font-sans);font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-ghost);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .testimonial-delete-btn{border:.5px solid var(--ink-rule);background:none;color:var(--ink-muted);font-family:var(--font-sans);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;cursor:pointer;transition:all .15s}
+    .testimonial-delete-btn:hover{border-color:#cc5555;color:#cc5555;background:rgba(200,80,80,.04)}
   </style>
 </head>
 <body>
@@ -347,6 +354,10 @@
       <div class="dash-card" onclick="openPanel('categories')"><p class="dash-card-num">07</p><p class="dash-card-title">Categories</p><p class="dash-card-sub">How couples find you when browsing the hub</p><span class="dash-card-badge dash-badge-todo" id="badge-categories">&#9675; None selected</span></div>
       <div class="dash-card" onclick="openPanel('locations')"><p class="dash-card-num">08</p><p class="dash-card-title">Service Locations</p><p class="dash-card-sub">Every city, region or country you cover</p><span class="dash-card-badge dash-badge-todo" id="badge-locations">&#9675; No locations yet</span></div>
     </div>
+    <div class="dash-grid-2" style="margin-top:1px;margin-bottom:28px;">
+      <div class="dash-card" onclick="openPanel('testimonials')"><p class="dash-card-num">09</p><p class="dash-card-title">Testimonials</p><p class="dash-card-sub">Kind words from your couples</p><span class="dash-card-badge dash-badge-todo" id="badge-testimonials">&#9675; None added</span></div>
+      <div class="dash-card" style="background:var(--cream-warm);cursor:default;"><p class="dash-card-num" style="color:var(--ink-ghost);">&#10022;</p><p class="dash-card-title" style="color:var(--ink-muted);font-size:1rem;">More sections coming soon</p><p class="dash-card-sub">We&apos;re always improving your dashboard</p></div>
+    </div>
 
     <p class="dash-section-label">Messages &amp; Orders</p>
     <div class="dash-msg-card">
@@ -409,7 +420,7 @@
         <div class="booking-subcard">
           <h3>Booking Link &amp; Availability</h3>
           <p class="dashboard-help">Add your booking page and a short status update so couples know whether you are taking enquiries right now.</p>
-          <div class="dashboard-grid-2" style="margin-top:14px;"><div class="dashboard-field"><label for="bookingLink">Booking Link</label><input type="text" id="bookingLink" placeholder="https://calendly.com/..."></div><div class="dashboard-field"><label for="availabilityStatus">Availability Status</label><input type="text" id="availabilityStatus" placeholder="Now booking 2026 weddings"></div></div>
+          <div class="dashboard-grid-2" style="margin-top:14px;"><div class="dashboard-field"><label for="bookingLink">Booking Link</label><input type="text" id="bookingLink" placeholder="https://calendly.com/..."></div><div class="dashboard-field"><label for="availabilityStatus">Availability Status</label><input type="text" id="availabilityStatus" placeholder="Now booking 2026 weddings"><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;" id="availabilityPresets"><button type="button" class="avail-preset-btn" onclick="document.getElementById('availabilityStatus').value=this.dataset.val" data-val="Now booking 2026 weddings">Now booking 2026</button><button type="button" class="avail-preset-btn" onclick="document.getElementById('availabilityStatus').value=this.dataset.val" data-val="Now booking 2027 weddings">Now booking 2027</button><button type="button" class="avail-preset-btn" onclick="document.getElementById('availabilityStatus').value=this.dataset.val" data-val="Limited dates available">Limited dates</button><button type="button" class="avail-preset-btn" onclick="document.getElementById('availabilityStatus').value=this.dataset.val" data-val="Taking enquiries">Taking enquiries</button><button type="button" class="avail-preset-btn" onclick="document.getElementById('availabilityStatus').value=this.dataset.val" data-val="Fully booked for 2026">Fully booked 2026</button></div></div></div>
           <div class="dashboard-field" style="margin-top:14px;"><label for="bookingNotes">Booking Notes</label><textarea id="bookingNotes" rows="4" placeholder="Share anything couples should know before booking..."></textarea></div>
         </div>
         <div class="booking-subcard" style="background:var(--cream-warm);">
@@ -518,6 +529,25 @@
     </div>
   </div>
 
+  <!-- Testimonials drawer -->
+  <div class="dash-drawer" id="drawer-testimonials">
+    <div class="dash-drawer-header"><h2 class="dash-drawer-title">Testimonials</h2><button class="dash-drawer-close" onclick="closePanel()">&#10005;</button></div>
+    <div class="dash-drawer-body">
+      <p class="dashboard-help" style="margin-bottom:18px;">Add kind words from your couples. These appear on your public profile.</p>
+      <div id="testimonialsList" style="margin-bottom:18px;"></div>
+      <div style="border-top:.5px solid var(--ink-rule);padding-top:18px;">
+        <p class="dashboard-section-title" style="margin-bottom:14px;">Add a Testimonial</p>
+        <div class="dashboard-field" style="margin-bottom:14px;"><label for="testimonialQuote">What they said</label><textarea id="testimonialQuote" rows="3" placeholder="&quot;They captured every moment perfectly...&quot;"></textarea></div>
+        <div class="dashboard-grid-2">
+          <div class="dashboard-field"><label for="testimonialName">Couple's name</label><input type="text" id="testimonialName" placeholder="Emma &amp; James"></div>
+          <div class="dashboard-field"><label for="testimonialDate">Date (optional)</label><input type="text" id="testimonialDate" placeholder="March 2026"></div>
+        </div>
+        <div style="margin-top:16px;"><button type="button" id="addTestimonialBtn" class="pretty-button">Add Testimonial</button></div>
+        <p id="testimonialMsg" class="dashboard-help" style="margin-top:10px;"></p>
+      </div>
+    </div>
+  </div>
+
   <!-- Account Settings drawer -->
   <div class="dash-drawer" id="drawer-account">
     <div class="dash-drawer-header"><h2 class="dash-drawer-title">Account Settings</h2><button class="dash-drawer-close" onclick="closePanel()">&#10005;</button></div>
@@ -556,6 +586,7 @@
     if (drawer) drawer.classList.add("open");
     document.getElementById("drawerOverlay").classList.add("open");
     document.body.style.overflow = "hidden";
+    if (name === "testimonials") document.dispatchEvent(new CustomEvent("loadTestimonialsPanel"));
   }
   function closePanel() {
     document.querySelectorAll(".dash-drawer").forEach(d => d.classList.remove("open"));
@@ -567,6 +598,13 @@
     const strip = document.getElementById("dashboardStatStrip");
     if (strip) strip.style.opacity = "1";
   });
+  window.refreshTestimonials = async function() {
+    if (window._currentUserUid) {
+      const { db, doc, getDoc } = window._fbModules || {};
+      // loadTestimonials is in module scope, triggered on panel open via custom event
+      document.dispatchEvent(new CustomEvent("loadTestimonialsPanel"));
+    }
+  };
   window.updateDashBadge = function(section, state, label) {
     const el = document.getElementById("badge-" + section);
     if (!el) return;
@@ -1038,11 +1076,65 @@ import { LOCATION_DATA } from "./locations.js";
     setTimeout(() => show(""), 3000);
   };
 
+  document.addEventListener("loadTestimonialsPanel", async function() {
+    if (currentUser) await loadTestimonials(currentUser.uid);
+  });
   saveAccountBtn.addEventListener("click", saveAccountSettings);
   saveProductBtn.addEventListener("click", saveBoutiqueProduct);
   document.getElementById("cancelEditBtn") && document.getElementById("cancelEditBtn").addEventListener("click", () => {
     clearProductForm();
     document.getElementById("cancelEditBtn").style.display = "none";
+  });
+
+  // ── TESTIMONIALS MANAGEMENT ──
+  async function loadTestimonials(uid) {
+    const snap = await getDoc(doc(db, "vendors", uid));
+    const vd = snap.exists() ? snap.data() : {};
+    const testimonials = Array.isArray(vd.testimonials) ? vd.testimonials.filter(Boolean) : [];
+    const list = document.getElementById("testimonialsList");
+    if (!list) return;
+    if (!testimonials.length) {
+      list.innerHTML = '<p class="dashboard-help">No testimonials yet — add your first one below.</p>';
+      window.updateDashBadge && window.updateDashBadge("testimonials", "todo", "○ None added");
+      return;
+    }
+    list.innerHTML = "";
+    testimonials.forEach(function(t, i) {
+      const item = document.createElement("div");
+      item.className = "testimonial-manage-item";
+      item.innerHTML = '<p class="testimonial-manage-quote">“' + String(t.quote || "").trim() + '”</p>'
+        + '<div class="testimonial-manage-meta"><span>' + String(t.name || "").trim() + (t.date ? " · " + String(t.date).trim() : "") + '</span>'
+        + '<button type="button" class="testimonial-delete-btn" data-index="' + i + '">Remove</button></div>';
+      item.querySelector(".testimonial-delete-btn").addEventListener("click", async function() {
+        const updated = testimonials.filter(function(_, idx) { return idx !== i; });
+        await setDoc(doc(db, "vendors", uid), { testimonials: updated }, { merge: true });
+        await loadTestimonials(uid);
+      });
+      list.appendChild(item);
+    });
+    window.updateDashBadge && window.updateDashBadge("testimonials", "ok", "✓ " + testimonials.length + " testimonial" + (testimonials.length === 1 ? "" : "s"));
+  }
+
+  document.getElementById("addTestimonialBtn") && document.getElementById("addTestimonialBtn").addEventListener("click", async function() {
+    const quote = document.getElementById("testimonialQuote").value.trim();
+    const name  = document.getElementById("testimonialName").value.trim();
+    const date  = document.getElementById("testimonialDate").value.trim();
+    const msg   = document.getElementById("testimonialMsg");
+    if (!quote) { if (msg) msg.textContent = "Please add what they said."; return; }
+    if (!name)  { if (msg) msg.textContent = "Please add the couple’s name."; return; }
+    if (msg) msg.textContent = "Saving…";
+    try {
+      const snap = await getDoc(doc(db, "vendors", currentUser.uid));
+      const existing = snap.exists() && Array.isArray(snap.data().testimonials) ? snap.data().testimonials : [];
+      existing.push({ quote, name, date: date || "" });
+      await setDoc(doc(db, "vendors", currentUser.uid), { testimonials: existing }, { merge: true });
+      document.getElementById("testimonialQuote").value = "";
+      document.getElementById("testimonialName").value = "";
+      document.getElementById("testimonialDate").value = "";
+      if (msg) msg.textContent = "Testimonial added ♥";
+      setTimeout(function() { if (msg) msg.textContent = ""; }, 3000);
+      await loadTestimonials(currentUser.uid);
+    } catch(err) { console.error(err); if (msg) msg.textContent = "Could not save. Please try again."; }
   });
 
   onAuthStateChanged(auth, async (user) => {
@@ -1075,6 +1167,7 @@ import { LOCATION_DATA } from "./locations.js";
 
     try {
       await loadVendorData(currentUser.uid);
+      await loadTestimonials(currentUser.uid);
     } catch (err) {
       console.error("Dashboard load error:", err);
       // Show a visible error so the user knows something went wrong
