@@ -742,8 +742,9 @@ async function loadVendor() {
 
     galleryItems = buildGallery(vendorData); updateGallery();
 
-    // ── CALENDAR — only show if showCalendar: true ──
-    if (vendorData.showCalendar === true) {
+    // ── CALENDAR — only show if showCalendar:true AND no booking link ──
+    var hasBookingLink = !!(vendorData.bookingLink||vendorData.bookingUrl||vendorData.calendly||vendorData.calendlyUrl||vendorData.calendarLink||vendorData.calendarUrl||"").trim();
+    if (vendorData.showCalendar === true && !hasBookingLink) {
       show(calendarCard, "block");
       renderCalendar();
     }
