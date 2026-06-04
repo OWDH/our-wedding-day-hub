@@ -13,77 +13,134 @@
     :root{--ink:#1A1A16;--ink-mid:#4A4A44;--ink-muted:#8A8A82;--ink-ghost:#C0C0B8;--ink-rule:#DDDDD8;--cream:#FAFAF8;--cream-warm:#F4F0EA;--cream-deep:#EDE8E0;--gold:#9A7A5A;--gold-light:#C4A882;--font-serif:'Cormorant Garamond',Georgia,serif;--font-sans:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{background:var(--cream);font-family:var(--font-sans);color:var(--ink);-webkit-font-smoothing:antialiased}
     @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── TOPBAR ── */
     .site-topbar{background:var(--cream);border-bottom:1px solid var(--ink-rule);padding:0 36px;display:flex;align-items:center;gap:20px;min-height:64px;position:sticky;top:0;z-index:200}.site-topbar-logo-wrap{display:inline-flex;align-items:center}.site-topbar-logo{width:44px;height:44px;object-fit:contain}.site-topbar-title{flex:1}.site-topbar-title h1{font-family:var(--font-serif);font-size:1.05rem;font-weight:400;letter-spacing:.01em;color:var(--ink)}.site-topbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.site-topbar-link,.site-topbar-btn{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:6px 14px;font-family:var(--font-sans);font-size:.75rem;letter-spacing:.06em;text-decoration:none;white-space:nowrap;transition:all .2s ease}.site-topbar-link{color:var(--ink-muted);border:none;background:none}.site-topbar-link:hover{color:var(--ink)}.site-topbar-btn{background:var(--ink);color:var(--cream);font-weight:600;border:none;cursor:pointer}.site-topbar-btn:hover{background:var(--ink-mid)}
-    .categories-hero{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;border-bottom:1px solid var(--ink)}.categories-hero-copy{padding:90px 40px 70px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--ink-rule);position:relative}.categories-kicker,.categories-title,.categories-script{text-align:center;margin-left:auto;margin-right:auto;width:100%;max-width:520px}.categories-hero-copy>*{animation:fadeUp .7s ease forwards;opacity:0}.categories-hero-copy>*:nth-child(1){animation-delay:.05s}.categories-hero-copy>*:nth-child(2){animation-delay:.12s}.categories-hero-copy>*:nth-child(3){animation-delay:.2s}.categories-hero-copy>*:nth-child(4){animation-delay:.3s}.categories-hero-copy>*:nth-child(5){animation-delay:.38s}.categories-hero-copy>*:nth-child(6){animation-delay:.44s}.categories-logo-wrap{position:absolute;top:40px;left:40px}.categories-logo{width:110px;height:auto;object-fit:contain;opacity:.9}.categories-kicker{font-family:var(--font-sans);font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:24px}.categories-title{font-family:var(--font-serif);font-size:clamp(2.2rem,3.8vw,3.4rem);font-weight:300;line-height:.95;letter-spacing:-.03em;color:var(--ink);margin-bottom:30px}.categories-script{font-family:var(--font-serif);font-style:italic;font-size:1.15rem;color:var(--gold);letter-spacing:.01em;margin-bottom:40px}
-    .categories-filter-wrap{margin-top:0}.categories-filter-bar{display:flex;flex-wrap:wrap;gap:6px}.hidden-categories-wrap{display:none;flex-wrap:wrap;gap:6px;width:100%;margin-top:8px}.categories-filter-pill{display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;min-height:34px;font-family:var(--font-sans);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted);text-decoration:none;border:.5px solid var(--ink-rule);background:none;transition:all .2s ease;white-space:nowrap;cursor:pointer}.categories-filter-pill:hover{color:var(--ink);border-color:var(--ink-muted);background:var(--cream-warm)}.categories-filter-pill.active{background:var(--ink);color:var(--cream);border-color:var(--ink)}
-    .categories-search-panel{margin-top:0;padding:0;background:none;border:none;box-shadow:none;border-radius:0}.categories-search-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:.5px solid var(--ink-rule)}.categories-search-field{border-right:.5px solid var(--ink-rule);border-bottom:.5px solid var(--ink-rule);padding:10px 14px}.categories-search-field:nth-child(even){border-right:none}.categories-search-field:nth-last-child(-n+2){border-bottom:none}.categories-search-field label{display:block;margin-bottom:5px;font-family:var(--font-sans);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-ghost)}.categories-search-field select,.categories-search-field input{width:100%;border:none;background:transparent;outline:none;padding:2px 0;font-family:var(--font-sans);font-size:.85rem;color:var(--ink)}.categories-search-field select option{background:var(--cream)}.categories-search-field input::placeholder{color:var(--ink-ghost)}.categories-search-btn-row{display:flex;gap:12px;align-items:center;margin-top:14px}.categories-search-btn{font-family:var(--font-sans);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream);background:var(--ink);border:none;padding:10px 22px;cursor:pointer;transition:background .2s;min-height:38px}.categories-search-btn:hover{background:var(--ink-mid)}.categories-clear-btn{font-family:var(--font-sans);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted);background:none;border:none;cursor:pointer;padding:0;text-decoration:none;border-bottom:.5px solid var(--ink-rule);padding-bottom:1px;transition:color .2s}.categories-clear-btn:hover{color:var(--ink)}.categories-clear-row{display:none}
-    .categories-hero-image-wrap{position:relative;overflow:hidden;background:var(--cream-deep);min-height:480px}.categories-hero-image{width:100%;height:100%;display:block;object-fit:cover;object-position:center;opacity:0;animation:fadeUp .9s ease forwards;animation-delay:.1s;transition:transform .9s ease}.categories-hero-image-wrap:hover .categories-hero-image{transform:scale(1.025)}
+
+    /* ── HERO BANNER ── */
+    .categories-hero{position:relative;min-height:420px;display:flex;align-items:flex-end;border-bottom:1px solid var(--ink);overflow:hidden;background:var(--cream-deep)}
+    .categories-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;filter:brightness(.52) saturate(.82)}
+    .categories-hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(26,26,22,.88) 0%,rgba(26,26,22,.28) 55%,rgba(26,26,22,.08) 100%)}
+    .categories-hero-content{position:relative;z-index:2;padding:0 52px 48px;width:100%;animation:fadeUp .7s ease both}
+    .categories-hero-kicker{font-family:var(--font-sans);font-size:.62rem;letter-spacing:.3em;text-transform:uppercase;color:rgba(240,232,216,.45);margin-bottom:14px}
+    .categories-hero-title{font-family:var(--font-serif);font-size:clamp(2.8rem,5vw,4.4rem);font-weight:300;line-height:.9;letter-spacing:-.04em;color:#f0e8d8}
+
+    /* ── FILTER + SEARCH AREA (below hero, unchanged styles) ── */
+    .categories-filter-area{padding:28px 36px 0;border-bottom:1px solid var(--ink-rule)}
+    .categories-filter-wrap{margin-bottom:22px}
+    .categories-filter-bar{display:flex;flex-wrap:wrap;gap:6px}
+    .hidden-categories-wrap{display:none;flex-wrap:wrap;gap:6px;width:100%;margin-top:8px}
+    .categories-filter-pill{display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;min-height:34px;font-family:var(--font-sans);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted);text-decoration:none;border:.5px solid var(--ink-rule);background:none;transition:all .2s ease;white-space:nowrap;cursor:pointer}.categories-filter-pill:hover{color:var(--ink);border-color:var(--ink-muted);background:var(--cream-warm)}.categories-filter-pill.active{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+    .categories-search-panel{margin-top:0;padding:0;background:none;border:none;box-shadow:none;border-radius:0}
+    .categories-search-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:.5px solid var(--ink-rule)}
+    .categories-search-field{border-right:.5px solid var(--ink-rule);border-bottom:.5px solid var(--ink-rule);padding:10px 14px}
+    .categories-search-field:nth-child(even){border-right:none}
+    .categories-search-field:nth-last-child(-n+2){border-bottom:none}
+    .categories-search-field label{display:block;margin-bottom:5px;font-family:var(--font-sans);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-ghost)}
+    .categories-search-field select,.categories-search-field input{width:100%;border:none;background:transparent;outline:none;padding:2px 0;font-family:var(--font-sans);font-size:.85rem;color:var(--ink)}
+    .categories-search-field select option{background:var(--cream)}
+    .categories-search-field input::placeholder{color:var(--ink-ghost)}
+    .categories-search-btn-row{display:flex;gap:12px;align-items:center;margin-top:14px;padding-bottom:22px}
+    .categories-search-btn{font-family:var(--font-sans);font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cream);background:var(--ink);border:none;padding:10px 22px;cursor:pointer;transition:background .2s;min-height:38px}.categories-search-btn:hover{background:var(--ink-mid)}
+    .categories-clear-btn{font-family:var(--font-sans);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted);background:none;border:none;cursor:pointer;padding:0;text-decoration:none;border-bottom:.5px solid var(--ink-rule);padding-bottom:1px;transition:color .2s}.categories-clear-btn:hover{color:var(--ink)}
+    .categories-clear-row{display:none}
+
+    /* ── TRUST STRIP ── */
     .categories-trust-strip{display:flex;gap:0;border-bottom:1px solid var(--ink-rule);overflow:hidden}.categories-trust-strip span{flex:1;text-align:center;padding:10px 16px;font-family:var(--font-sans);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-ghost);border-right:1px solid var(--ink-rule)}.categories-trust-strip span:last-child{border-right:none}
-    .categories-page{max-width:100%}.categories-results-head{display:flex;justify-content:space-between;align-items:baseline;padding:28px 36px 0;border-top:1px solid var(--ink)}.categories-results-kicker{font-family:var(--font-sans);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:4px}.categories-results-title{font-family:var(--font-serif);font-size:1.5rem;font-weight:300;letter-spacing:-.02em;color:var(--ink)}.categories-results-label{font-family:var(--font-sans);font-size:.72rem;letter-spacing:.06em;color:var(--ink-ghost)}.categories-results-label strong{color:var(--ink);font-weight:600}
+
+    /* ── RESULTS — identical to original ── */
+    .categories-page{max-width:100%}
+    .categories-results-head{display:flex;justify-content:space-between;align-items:baseline;padding:28px 36px 0;border-top:1px solid var(--ink)}
+    .categories-results-kicker{font-family:var(--font-sans);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:4px}
+    .categories-results-title{font-family:var(--font-serif);font-size:1.5rem;font-weight:300;letter-spacing:-.02em;color:var(--ink)}
+    .categories-results-label{font-family:var(--font-sans);font-size:.72rem;letter-spacing:.06em;color:var(--ink-ghost)}.categories-results-label strong{color:var(--ink);font-weight:600}
     .categories-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:var(--ink-rule);margin-top:20px}
+
+    /* ── VENDOR CARDS — identical to original ── */
     .category-vendor-card{background:var(--cream);cursor:pointer;overflow:hidden;border-radius:0;border:none;box-shadow:none;display:flex;flex-direction:column;position:relative;transition:none;min-height:100%}.category-vendor-card-img-wrap{position:relative;width:100%;aspect-ratio:3/4;overflow:hidden;background:var(--cream-deep);flex-shrink:0}.category-vendor-card-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease}.category-vendor-card:hover .category-vendor-card-img-wrap img{transform:scale(1.04)}.category-vendor-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(20,18,14,.78) 0%,rgba(20,18,14,.22) 42%,transparent 68%);opacity:0;transition:opacity .38s ease;pointer-events:none}.category-vendor-card:hover .category-vendor-card-overlay{opacity:1}.category-vendor-card-hover{position:absolute;bottom:0;left:0;right:0;padding:18px 18px 16px;transform:translateY(6px);opacity:0;transition:all .38s ease;pointer-events:none}.category-vendor-card:hover .category-vendor-card-hover{transform:translateY(0);opacity:1;pointer-events:auto}.category-vendor-card-bio{font-family:var(--font-sans);font-size:.78rem;color:rgba(255,255,255,.8);line-height:1.55;margin-bottom:10px}.category-vendor-btn{display:inline-block;font-family:var(--font-sans);font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--cream);background:none;border:.5px solid rgba(255,255,255,.55);padding:7px 14px;cursor:pointer;transition:background .2s,border-color .2s;border-radius:0;box-shadow:none}.category-vendor-btn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.8)}.category-vendor-info{padding:13px 16px 15px;border-top:.5px solid var(--ink-rule);flex:1;display:flex;flex-direction:column;gap:2px}.category-vendor-meta{font-family:var(--font-sans);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-ghost);margin:0}.category-vendor-name{font-family:var(--font-serif);font-size:1.05rem;font-weight:400;color:var(--ink);line-height:1.2;margin:0}.category-vendor-location{font-family:var(--font-sans);font-size:.7rem;color:var(--ink-ghost);margin:0}.category-vendor-actions{display:none}
+
     .categories-empty{padding:48px 36px;text-align:center;font-family:var(--font-serif);font-style:italic;font-size:1.1rem;color:var(--ink-muted);line-height:1.7}
+
+    /* ── FOOTER ── */
     .site-footer{background:var(--ink);border-top:1px solid var(--ink-mid)}.footer-content{padding:72px 50px 58px;display:grid;grid-template-columns:1.2fr .8fr;gap:90px;align-items:center;max-width:1280px;margin:0 auto}.footer-logo-col{display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:520px}.footer-eyebrow{font-family:var(--font-sans);font-size:.65rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-muted)}.footer-title{font-family:var(--font-serif);font-size:1.4rem;font-weight:300;color:var(--cream);letter-spacing:-.02em;text-align:left;margin:4px 0 6px}.footer-text{font-family:var(--font-sans);font-size:.78rem;color:var(--ink-muted);line-height:1.6;text-align:left}.footer-tagline{font-family:var(--font-serif);font-style:italic;font-size:.95rem;color:var(--gold-light);text-align:left;margin-top:16px}.footer-abn{font-family:var(--font-sans);font-size:.68rem;color:var(--ink-muted);margin-top:4px}.footer-links-col{display:flex;flex-direction:column;gap:10px;align-items:flex-end}.footer-links{display:flex;flex-direction:column;gap:13px;align-items:flex-end}.footer-links a{font-family:var(--font-sans);font-size:.72rem;letter-spacing:.06em;color:var(--ink-muted);text-decoration:none;transition:color .2s}.footer-links a:hover{color:var(--cream)}
-    @media(max-width:980px){.categories-hero{grid-template-columns:1fr}.categories-hero-copy{border-right:none;border-bottom:1px solid var(--ink-rule)}.categories-hero-image-wrap{min-height:320px}.categories-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.footer-content{grid-template-columns:1fr;gap:24px}.footer-links-col{align-items:flex-start}.footer-links{align-items:flex-start}}
-    @media(max-width:700px){.site-topbar{padding:0 16px;min-height:56px;position:relative}.categories-hero-copy{padding:150px 20px 55px}.categories-hero-image-wrap{min-height:240px}.categories-search-grid{grid-template-columns:1fr}.categories-search-field{border-right:none}.categories-search-field:nth-child(even){border-right:none}.categories-search-field:nth-last-child(-n+2){border-bottom:.5px solid var(--ink-rule)}.categories-search-field:last-child{border-bottom:none}.categories-grid{grid-template-columns:1fr}.categories-results-head{padding:20px 16px 0;flex-wrap:wrap;gap:6px}.footer-content{padding:28px 20px 24px}.categories-trust-strip{display:none}}
+
+    /* ── RESPONSIVE ── */
+    @media(max-width:980px){
+      .categories-hero{min-height:320px}
+      .categories-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .footer-content{grid-template-columns:1fr;gap:24px}
+      .footer-links-col{align-items:flex-start}.footer-links{align-items:flex-start}
+    }
+    @media(max-width:700px){
+      .site-topbar{padding:0 16px;min-height:56px;position:relative}
+      .categories-hero{min-height:260px}
+      .categories-hero-content{padding:0 22px 32px}
+      .categories-hero-title{font-size:clamp(2.2rem,8vw,3rem)}
+      .categories-filter-area{padding:20px 16px 0}
+      .categories-search-grid{grid-template-columns:1fr}
+      .categories-search-field{border-right:none}
+      .categories-search-field:nth-child(even){border-right:none}
+      .categories-search-field:nth-last-child(-n+2){border-bottom:.5px solid var(--ink-rule)}
+      .categories-search-field:last-child{border-bottom:none}
+      .categories-grid{grid-template-columns:1fr}
+      .categories-results-head{padding:20px 16px 0;flex-wrap:wrap;gap:6px}
+      .footer-content{padding:28px 20px 24px}
+      .categories-trust-strip{display:none}
+    }
     @media(max-width:1180px){.categories-search-grid{grid-template-columns:1fr 1fr}}
-  
-    /* ── SHARED NAV (injected by nav.js) ── */
-    .nav-links { display: flex; align-items: center; gap: 8px; }
-    .mobile-menu-btn {
-      display: none; background: none; border: none;
-      color: var(--ink); font-size: 1.5rem; cursor: pointer; padding: 4px;
+
+    /* ── NAV MOBILE ── */
+    .nav-links{display:flex;align-items:center;gap:8px}
+    .mobile-menu-btn{display:none;background:none;border:none;color:var(--ink);font-size:1.5rem;cursor:pointer;padding:4px}
+    @media(max-width:700px){
+      .site-topbar{padding:0 16px!important;min-height:56px!important;position:relative!important}
+      .mobile-menu-btn{display:inline-flex;align-items:center;justify-content:center}
+      .nav-links{display:none}
+      .nav-links.active{display:flex;flex-direction:column;position:absolute;top:56px;right:12px;background:rgba(250,250,248,.97);backdrop-filter:blur(14px);border:1px solid var(--ink-rule);padding:22px;gap:18px;min-width:230px;z-index:999;box-shadow:0 18px 45px rgba(0,0,0,.08)}
+      .nav-links.active a,.nav-links.active button{justify-content:flex-start;width:100%;padding:10px 0;border-bottom:1px solid var(--ink-rule);background:none!important;color:var(--ink)!important;font-size:.76rem;letter-spacing:.12em}
+      .nav-links.active a:last-child,.nav-links.active button:last-child{border-bottom:none}
     }
-    @media (max-width: 700px) {
-      .site-topbar { padding: 0 16px !important; min-height: 56px !important; position: relative !important; }
-      .mobile-menu-btn { display: inline-flex; align-items: center; justify-content: center; }
-      .nav-links { display: none; }
-      .nav-links.active {
-        display: flex; flex-direction: column;
-        position: absolute; top: 56px; right: 12px;
-        background: rgba(250,250,248,0.97); backdrop-filter: blur(14px);
-        border: 1px solid var(--ink-rule); padding: 22px; gap: 18px;
-        min-width: 230px; z-index: 999; box-shadow: 0 18px 45px rgba(0,0,0,0.08);
-      }
-      .nav-links.active a, .nav-links.active button {
-        justify-content: flex-start; width: 100%;
-        padding: 10px 0; border-bottom: 1px solid var(--ink-rule);
-        background: none !important; color: var(--ink) !important;
-        font-size: 0.76rem; letter-spacing: 0.12em;
-      }
-      .nav-links.active a:last-child,
-      .nav-links.active button:last-child { border-bottom: none; }
-    }
-</style>
+    @media(min-width:701px){.mobile-menu-btn{display:none}}
+  </style>
 </head>
 <body>
 <div id="siteNav"></div>
+
 <main class="categories-page">
+
+  <!-- ── HERO BANNER ── -->
   <section class="categories-hero">
-    <div class="categories-hero-copy">
-      <a href="index.html" class="categories-logo-wrap" aria-label="Go to homepage"><img src="images/logo1.png" alt="Our Wedding Day Hub" class="categories-logo" loading="eager"></a>
-      <p class="categories-kicker">Browse wedding vendors</p>
-      <h1 class="categories-title" id="categoryPageTitle">All Categories</h1>
-      <p class="categories-script">find the people who make it perfect &#9825;</p>
-      <div class="categories-filter-wrap"><div class="categories-filter-bar" id="categoriesFilterBar"></div></div>
-      <div class="categories-search-panel">
-        <div class="categories-search-grid">
-          <div class="categories-search-field"><label for="mainCategorySelect">Category</label><select id="mainCategorySelect"><option value="all">All Categories</option></select></div>
-          <div class="categories-search-field"><label for="subCategorySelect">Subcategory</label><select id="subCategorySelect"><option value="all">All Subcategories</option></select></div>
-          <div class="categories-search-field"><label for="locationSearch">Location</label><input type="text" id="locationSearch" placeholder="Suburb, city, state or country"></div>
-          <div class="categories-search-field"><label for="keywordSearch">Search</label><input type="text" id="keywordSearch" placeholder="Style, vendor, keyword..."></div>
-          <div class="categories-search-field"><label for="dateSearch">Wedding Date</label><input type="date" id="dateSearch"></div>
-        </div>
-        <div class="categories-search-btn-row">
-          <button type="button" id="searchBtn" class="categories-search-btn">Search &#8594;</button>
-          <button type="button" id="clearFiltersBtn" class="categories-clear-btn">Clear filters</button>
-        </div>
-        <div class="categories-clear-row"><button type="button" class="categories-clear-btn" style="display:none;"></button></div>
-      </div>
+    <div class="categories-hero-bg" id="categoriesHeroBg"></div>
+    <div class="categories-hero-overlay"></div>
+    <div class="categories-hero-content">
+      <p class="categories-hero-kicker">Browse wedding vendors</p>
+      <h1 class="categories-hero-title" id="categoryPageTitle">All Categories</h1>
     </div>
-    <div class="categories-hero-image-wrap"><img src="images/city.png" alt="Bride" class="categories-hero-image" loading="lazy"></div>
   </section>
+
+  <!-- ── FILTERS + SEARCH (moved out of hero, styles unchanged) ── -->
+  <div class="categories-filter-area">
+    <div class="categories-filter-wrap">
+      <div class="categories-filter-bar" id="categoriesFilterBar"></div>
+    </div>
+    <div class="categories-search-panel">
+      <div class="categories-search-grid">
+        <div class="categories-search-field"><label for="mainCategorySelect">Category</label><select id="mainCategorySelect"><option value="all">All Categories</option></select></div>
+        <div class="categories-search-field"><label for="subCategorySelect">Subcategory</label><select id="subCategorySelect"><option value="all">All Subcategories</option></select></div>
+        <div class="categories-search-field"><label for="locationSearch">Location</label><input type="text" id="locationSearch" placeholder="Suburb, city, state or country"></div>
+        <div class="categories-search-field"><label for="keywordSearch">Search</label><input type="text" id="keywordSearch" placeholder="Style, vendor, keyword..."></div>
+        <div class="categories-search-field"><label for="dateSearch">Wedding Date</label><input type="date" id="dateSearch"></div>
+      </div>
+      <div class="categories-search-btn-row">
+        <button type="button" id="searchBtn" class="categories-search-btn">Search &#8594;</button>
+        <button type="button" id="clearFiltersBtn" class="categories-clear-btn">Clear filters</button>
+      </div>
+      <div class="categories-clear-row"><button type="button" class="categories-clear-btn" style="display:none;"></button></div>
+    </div>
+  </div>
+
   <div class="categories-trust-strip"><span>Trusted across Australia &amp; worldwide</span><span>Proudly independent</span><span>Built with heart</span><span>Proudly inclusive</span></div>
+
   <section>
     <div class="categories-results-head">
       <div class="categories-results-head-left"><p class="categories-results-kicker">Results</p><h2 class="categories-results-title" id="categoryPageSubtitle">Discover trusted wedding vendors</h2></div>
@@ -92,7 +149,9 @@
     <section id="categoriesGrid" class="categories-grid"></section>
     <p id="categoriesEmpty" class="categories-empty" style="display:none;">No vendors found just yet for this search. Try another category, subcategory, location or keyword.</p>
   </section>
+
 </main>
+
 <footer class="site-footer">
   <div class="footer-content">
     <div class="footer-logo-col">
@@ -109,6 +168,7 @@
   <div style="width:100%;max-width:1280px;height:1px;background:rgba(255,255,255,.08);margin:0 auto 24px;"></div>
   <p style="font-family:var(--font-sans);font-size:.65rem;color:var(--ink-muted);letter-spacing:.12em;text-transform:uppercase;text-align:center;padding-bottom:40px;">Proudly inclusive &#8226; Worldwide &#8226; Built with heart</p>
 </footer>
+
 <script type="module">
     import { db, auth, collection, getDocs, onAuthStateChanged, signOut } from "./firebase.js";
     const categoriesGrid=document.getElementById("categoriesGrid");const categoriesEmpty=document.getElementById("categoriesEmpty");const resultsCount=document.getElementById("resultsCount");const categoryPageTitle=document.getElementById("categoryPageTitle");const categoryPageSubtitle=document.getElementById("categoryPageSubtitle");const categoriesFilterBar=document.getElementById("categoriesFilterBar");const mainCategorySelect=document.getElementById("mainCategorySelect");const subCategorySelect=document.getElementById("subCategorySelect");const locationSearch=document.getElementById("locationSearch");const keywordSearch=document.getElementById("keywordSearch");const dateSearch=document.getElementById("dateSearch");const searchBtn=document.getElementById("searchBtn");const clearFiltersBtn=document.getElementById("clearFiltersBtn");
@@ -116,34 +176,100 @@
     let allLiveVendors=[];
     const CATEGORY_GROUPS={photo_video:{title:"Photo & Video",subtitle:"Photographers, videographers and content creators to capture every beautiful moment.",items:[["wedding_photographer","Photographer"],["wedding_videographer","Videographer"],["wedding_content_creator","Content Creator"],["photo_and_video_team","Photo & Video Team"],["engagement_photographer","Engagement Photographer"],["drone_operator","Drone Operator"]]},beauty:{title:"Beauty",subtitle:"Makeup, hair, nails, tanning and beauty professionals for your wedding day look.",items:[["wedding_makeup_artist","Makeup Artist"],["wedding_hair_stylist","Hair Stylist"],["nail_artist","Nail Artist"],["beauty_salon","Beauty Salon"],["spray_tan","Tanning"],["skin_aesthetics","Skin & Aesthetics"],["brow_artist","Brow Artist"],["lash_artist","Lash Artist"],["barber_grooming","Barber / Grooming"]]},entertainment:{title:"Entertainment",subtitle:"Singers, DJs, bands and performers to create the perfect atmosphere.",items:[["wedding_singer","Singer"],["wedding_band","Band"],["wedding_dj","DJ"],["acoustic_musician","Acoustic Musician"],["violinist","Violinist"],["saxophonist","Saxophonist"],["harpist","Harpist"],["wedding_mc","MC"],["string_quartet","String Quartet"],["live_entertainment","Live Entertainment"]]},styling_florals:{title:"Styling & Florals",subtitle:"Florists, stylists and designers to shape the look and feel of your day.",items:[["wedding_florist","Florist"],["wedding_stylist","Wedding Stylist"],["event_designer","Event Designer"],["balloon_stylist","Balloon Stylist"],["backdrops_arches","Backdrops & Arches"],["ceremony_styling","Ceremony Styling"],["reception_styling","Reception Styling"]]},food_drink:{title:"Food & Drink",subtitle:"Caterers, cake designers, dessert vendors and drinks services for every celebration style.",items:[["wedding_caterer","Caterer"],["wedding_cake_designer","Wedding Cake Designer"],["dessert_bar","Dessert Bar"],["mobile_bar","Mobile Bar"],["coffee_cart","Coffee Cart"],["food_truck","Food Truck"],["grazing_tables","Grazing Tables"],["cocktail_catering","Cocktail Catering"],["ice_cream_cart","Ice Cream Cart"]]},venues:{title:"Venues",subtitle:"Beautiful spaces for ceremonies, receptions, elopements and unforgettable celebrations.",items:[["wedding_venue","Wedding Venue"],["ceremony_venue","Ceremony Venue"],["reception_venue","Reception Venue"],["elopement_location","Elopement Location"],["outdoor_venue","Outdoor Venue"],["church_ceremony_venue","Church / Ceremony Venue"],["garden_venue","Garden Venue"],["winery_venue","Winery Venue"],["beach_venue","Beach Venue"]]},stationery_signage:{title:"Stationery & Signage",subtitle:"Invitations, signage and paper details to complete your wedding styling.",items:[["wedding_invitations","Invitations"],["wedding_stationery","Wedding Stationery"],["wedding_signage","Signage"],["calligraphy","Calligraphy"],["place_cards","Place Cards"],["seating_charts","Seating Charts"]]},fashion:{title:"Fashion",subtitle:"Bridal fashion, formalwear and accessories for the wedding party.",items:[["bridal_boutique","Bridal Boutique"],["bridesmaid_dresses","Bridesmaid Dresses"],["formal_wear","Formal Wear"],["suit_hire","Suit Hire"],["custom_designer","Custom Designer"],["wedding_dress_alterations","Dress Alterations"],["bridal_accessories","Bridal Accessories"],["bridal_shoes","Bridal Shoes"],["veils_headpieces","Veils & Headpieces"],["mother_of_the_bride_fashion","Mother of the Bride Fashion"],["mother_of_the_groom_fashion","Mother of the Groom Fashion"]]},jewellery:{title:"Jewellery",subtitle:"Wedding rings, engagement rings and custom jewellery for lasting memories.",items:[["wedding_rings","Wedding Rings"],["engagement_rings","Engagement Rings"],["custom_jewellery","Custom Jewellery"],["permanent_jewellery","Permanent Jewellery"]]},transport:{title:"Transport",subtitle:"Wedding cars, guest transport and elegant arrival options.",items:[["wedding_cars","Wedding Cars"],["luxury_cars","Luxury Cars"],["vintage_cars","Vintage Cars"],["limousine","Limousine"],["guest_transport","Guest Transport"],["bus_charter","Bus Charter"],["horse_carriage","Horse & Carriage"]]},experiences_unique_services:{title:"Experiences & Unique Services",subtitle:"Special extra touches to make your day feel unforgettable and personal.",items:[["live_wedding_painter","Live Wedding Painter"],["photo_booth","Photo Booth"],["audio_guestbook","Audio Guestbook"],["wedding_content_creator_unique","Wedding Content Creator"],["fireworks_special_effects","Fireworks / Special Effects"],["dance_lessons","Dance Lessons"],["caricature_artist","Caricature Artist"],["tarot_reader","Tarot Reader"]]},pre_wedding_celebrations:{title:"Pre-Wedding Celebrations",subtitle:"Beautiful experiences, activities and celebration services for the events leading up to the wedding.",items:[["engagement_party","Engagement Party"],["bridal_shower","Bridal Shower"],["wedding_shower","Wedding Shower"],["pre_wedding_celebration","Pre-Wedding Celebration"],["group_experience","Group Experience"],["party_workshop","Party Workshop"],["celebration_planning","Celebration Planning"]]},ceremony_services:{title:"Ceremony Services",subtitle:"Celebrants and ceremony support to help create a meaningful moment.",items:[["wedding_celebrant","Celebrant"],["ceremony_music","Ceremony Music"],["wedding_vows_speech_writer","Vow / Speech Writer"]]},planning_support:{title:"Planning & Support",subtitle:"Wedding planners, coordinators and support professionals to help everything run smoothly.",items:[["wedding_planner","Wedding Planner"],["wedding_coordinator","Wedding Coordinator"],["on_the_day_coordinator","On-the-day Coordinator"],["honeymoon_planner","Honeymoon Planner"],["wedding_consultant","Wedding Consultant"]]},care_services:{title:"Care Services",subtitle:"Helpful support services for pets and children on your wedding day.",items:[["pet_attendant","Pet Attendant"],["child_minder_wedding_nanny","Child Minder / Wedding Nanny"]]},hire_rentals:{title:"Hire & Rentals",subtitle:"Furniture, decor, lighting and event hire items for weddings of every style.",items:[["furniture_hire","Furniture Hire"],["decor_hire","Decor Hire"],["tableware_hire","Tableware Hire"],["lighting_hire","Lighting Hire"],["marquee_hire","Marquee Hire"],["styling_hire","Styling Hire"],["dance_floor_hire","Dance Floor Hire"],["linen_hire","Linen Hire"],["prop_hire","Prop Hire"]]},gifts_favours:{title:"Gifts & Favours",subtitle:"Thoughtful gifts, hampers and bomboniere for your guests and wedding party.",items:[["wedding_favours","Wedding Favours"],["personalised_gifts","Personalised Gifts"],["hampers","Hampers"],["bomboniere","Bomboniere"]]},keepsakes:{title:"Keepsakes",subtitle:"Meaningful pieces and personalised keepsakes to help couples remember their day forever.",items:[["wedding_album","Wedding Album"],["photo_book","Photo Book"],["guestbook_keepsake","Guestbook Keepsake"],["framed_prints","Framed Prints"],["engraved_keepsakes","Engraved Keepsakes"],["bridal_boxes","Bridal Boxes"],["preserved_flowers","Preserved Flowers"],["wedding_memory_box","Wedding Memory Box"],["custom_illustration","Custom Illustration"]]},health_wellness:{title:"Health & Wellness",subtitle:"Fitness, massage and wellness services to help you feel your best.",items:[["bridal_fitness","Bridal Fitness"],["massage_therapist","Massage Therapist"],["wellness_services","Wellness Services"],["botanical_wellness","Botanical Wellness"]]},accommodation:{title:"Accommodation",subtitle:"Stays and accommodation options for wedding nights, guests and honeymoons.",items:[["guest_accommodation","Guest Accommodation"],["bridal_suite","Bridal Suite"],["honeymoon_stay","Honeymoon Stay"]]},all:{title:"All Categories",subtitle:"Discover trusted wedding vendors and explore beautiful businesses for every part of your day.",items:[]}};
     const MAIN_CATEGORY_ORDER=["photo_video","beauty","entertainment","styling_florals","food_drink","venues","stationery_signage","fashion","jewellery","transport","experiences_unique_services","pre_wedding_celebrations","ceremony_services","planning_support","care_services","hire_rentals","gifts_favours","keepsakes","health_wellness","accommodation","all"];
-    function cleanArray(arr){return Array.isArray(arr)?arr.filter(Boolean):[]}function formatText(value){if(!value)return"";return String(value).replace(/_/g," ").replace(/-/g," ").replace(/\s+/g," ").trim().replace(/\b\w/g,char=>char.toUpperCase())}
-    function getCardImage(vendor){if(vendor.coverImageUrl?.trim())return vendor.coverImageUrl;const imgs=[...(Array.isArray(vendor.images)?vendor.images:[]),...(Array.isArray(vendor.galleryImages)?vendor.galleryImages:[]),...(Array.isArray(vendor.imageUrls)?vendor.imageUrls:[])];const first=imgs.find(s=>s?.trim());if(first)return first;if(vendor.profileImageUrl?.trim())return vendor.profileImageUrl;if(vendor.logoUrl?.trim())return vendor.logoUrl;return"images/bouquet.png"}
+
+    /* ── HERO IMAGES pool — rotates by category ── */
+    const HERO_IMAGES=["images/spin.png","images/sunset.jpg","images/beautiful.png","images/heart.png","images/kiss.png","images/stair.png","images/city.png","images/twirl.png","images/love.png","images/group.png","images/gorgeous.png","images/cute.png","images/arm.png"];
+    function setHeroBg(title){const heroBg=document.getElementById("categoriesHeroBg");if(!heroBg)return;const idx=Math.abs(title.split("").reduce((a,c)=>a+c.charCodeAt(0),0))%HERO_IMAGES.length;heroBg.style.backgroundImage="url("+HERO_IMAGES[idx]+")";}
+
+    function cleanArray(arr){return Array.isArray(arr)?arr.filter(Boolean):[]}
+    function formatText(value){if(!value)return"";return String(value).replace(/_/g," ").replace(/-/g," ").replace(/\s+/g," ").trim().replace(/\b\w/g,char=>char.toUpperCase())}
+    function getCardImage(vendor){if(vendor.coverImageUrl&&vendor.coverImageUrl.trim())return vendor.coverImageUrl;const imgs=[...(Array.isArray(vendor.images)?vendor.images:[]),...(Array.isArray(vendor.galleryImages)?vendor.galleryImages:[]),...(Array.isArray(vendor.imageUrls)?vendor.imageUrls:[])];const first=imgs.find(s=>s&&s.trim());if(first)return first;if(vendor.profileImageUrl&&vendor.profileImageUrl.trim())return vendor.profileImageUrl;if(vendor.logoUrl&&vendor.logoUrl.trim())return vendor.logoUrl;return"images/bouquet.png"}
     function getShortBio(vendor){const source=(vendor.shortBio||"").trim()||(vendor.tagline||"").trim()||(vendor.bio||"").trim()||(vendor.description||"").trim();if(!source)return"Beautiful vendor profile coming soon.";return source.length>110?source.slice(0,110).trim()+"...":source}
-    function getCategoryLine(vendor){const categories=Array.isArray(vendor.categories)&&vendor.categories.length?vendor.categories:vendor.category?[vendor.category]:[];const cleaned=cleanArray(categories);if(!cleaned.length)return"";return cleaned.slice(0,3).map(formatText).join(" • ")}
-    function getLocationLine(vendor){if(vendor.serviceAreas?.trim())return formatText(vendor.serviceAreas.trim());const regions=cleanArray(vendor.regions);if(regions.length)return regions.slice(0,3).map(formatText).join(" • ");const states=cleanArray(vendor.states);if(states.length)return states.map(formatText).join(" • ");const countries=cleanArray(vendor.countries);if(countries.length)return countries.map(formatText).join(" • ");if(vendor.displayLocation?.trim())return formatText(vendor.displayLocation.trim());return""}
-    function goToVendor(vendor){sessionStorage.setItem("selectedVendorId",vendor.docId);if(vendor.uid)sessionStorage.setItem("selectedVendorUid",vendor.uid);window.location.href=`vendor.html?id=${vendor.docId}`}
+    function getCategoryLine(vendor){const categories=Array.isArray(vendor.categories)&&vendor.categories.length?vendor.categories:vendor.category?[vendor.category]:[];const cleaned=cleanArray(categories);if(!cleaned.length)return"";return cleaned.slice(0,3).map(formatText).join(" \u2022 ")}
+    function getLocationLine(vendor){if(vendor.serviceAreas&&vendor.serviceAreas.trim())return formatText(vendor.serviceAreas.trim());const regions=cleanArray(vendor.regions);if(regions.length)return regions.slice(0,3).map(formatText).join(" \u2022 ");const states=cleanArray(vendor.states);if(states.length)return states.map(formatText).join(" \u2022 ");const countries=cleanArray(vendor.countries);if(countries.length)return countries.map(formatText).join(" \u2022 ");if(vendor.displayLocation&&vendor.displayLocation.trim())return formatText(vendor.displayLocation.trim());return""}
+    function goToVendor(vendor){sessionStorage.setItem("selectedVendorId",vendor.docId);if(vendor.uid)sessionStorage.setItem("selectedVendorUid",vendor.uid);window.location.href="vendor.html?id="+vendor.docId}
     function getVendorCategories(vendor){const rawCategories=Array.isArray(vendor.categories)&&vendor.categories.length?vendor.categories:vendor.category?[vendor.category]:[];return rawCategories.map(cat=>String(cat).trim().toLowerCase()).filter(Boolean)}
     function getMainCategoryForSubcategory(subcategorySlug){for(const[mainKey,config]of Object.entries(CATEGORY_GROUPS)){if(mainKey==="all")continue;if(config.items.some(([value])=>value===subcategorySlug))return mainKey}return""}
     function buildMainCategoryOptions(){mainCategorySelect.innerHTML='<option value="all">All Categories</option>';MAIN_CATEGORY_ORDER.forEach(key=>{if(key==="all")return;const config=CATEGORY_GROUPS[key];if(!config)return;const option=document.createElement("option");option.value=key;option.textContent=config.title;mainCategorySelect.appendChild(option)})}
     function buildSubcategoryOptions(mainKey="all"){subCategorySelect.innerHTML='<option value="all">All Subcategories</option>';const groupsToUse=mainKey==="all"?MAIN_CATEGORY_ORDER.filter(key=>key!=="all"):[mainKey];groupsToUse.forEach(groupKey=>{const config=CATEGORY_GROUPS[groupKey];if(!config)return;config.items.forEach(([value,label])=>{const option=document.createElement("option");option.value=value;option.textContent=label;subCategorySelect.appendChild(option)})})}
-    function buildFilterPills(){categoriesFilterBar.innerHTML="";const featuredCategories=["photo_video","beauty","fashion","food_drink","venues","planning_support","entertainment","ceremony_services","accommodation","experiences_unique_services"];const hiddenCategories=MAIN_CATEGORY_ORDER.filter(key=>!featuredCategories.includes(key)&&key!=="all");featuredCategories.forEach(key=>{const config=CATEGORY_GROUPS[key];if(!config)return;const pill=document.createElement("a");pill.className="categories-filter-pill";pill.dataset.type=key;pill.href=`categories.html?type=${key}`;pill.textContent=config.title;if((selectedType||"all")===key)pill.classList.add("active");categoriesFilterBar.appendChild(pill)});const allBtn=document.createElement("a");allBtn.className="categories-filter-pill";allBtn.dataset.type="all";allBtn.href="categories.html";allBtn.textContent="All Categories";if((selectedType||"all")==="all")allBtn.classList.add("active");categoriesFilterBar.appendChild(allBtn);const moreBtn=document.createElement("button");moreBtn.className="categories-filter-pill";moreBtn.type="button";moreBtn.textContent="More Categories";categoriesFilterBar.appendChild(moreBtn);const hiddenWrap=document.createElement("div");hiddenWrap.className="hidden-categories-wrap";hiddenCategories.forEach(key=>{const config=CATEGORY_GROUPS[key];if(!config)return;const pill=document.createElement("a");pill.className="categories-filter-pill";pill.dataset.type=key;pill.href=`categories.html?type=${key}`;pill.textContent=config.title;if((selectedType||"all")===key){pill.classList.add("active");hiddenWrap.style.display="flex"}hiddenWrap.appendChild(pill)});moreBtn.addEventListener("click",()=>{const isOpen=hiddenWrap.style.display==="flex";hiddenWrap.style.display=isOpen?"none":"flex";moreBtn.textContent=isOpen?"More Categories":"Less Categories"});categoriesFilterBar.appendChild(hiddenWrap)}
+    function buildFilterPills(){categoriesFilterBar.innerHTML="";const featuredCategories=["photo_video","beauty","fashion","food_drink","venues","planning_support","entertainment","ceremony_services","accommodation","experiences_unique_services"];const hiddenCategories=MAIN_CATEGORY_ORDER.filter(key=>!featuredCategories.includes(key)&&key!=="all");featuredCategories.forEach(key=>{const config=CATEGORY_GROUPS[key];if(!config)return;const pill=document.createElement("a");pill.className="categories-filter-pill";pill.dataset.type=key;pill.href="categories.html?type="+key;pill.textContent=config.title;if((selectedType||"all")===key)pill.classList.add("active");categoriesFilterBar.appendChild(pill)});const allBtn=document.createElement("a");allBtn.className="categories-filter-pill";allBtn.dataset.type="all";allBtn.href="categories.html";allBtn.textContent="All Categories";if((selectedType||"all")==="all")allBtn.classList.add("active");categoriesFilterBar.appendChild(allBtn);const moreBtn=document.createElement("button");moreBtn.className="categories-filter-pill";moreBtn.type="button";moreBtn.textContent="More Categories";categoriesFilterBar.appendChild(moreBtn);const hiddenWrap=document.createElement("div");hiddenWrap.className="hidden-categories-wrap";hiddenCategories.forEach(key=>{const config=CATEGORY_GROUPS[key];if(!config)return;const pill=document.createElement("a");pill.className="categories-filter-pill";pill.dataset.type=key;pill.href="categories.html?type="+key;pill.textContent=config.title;if((selectedType||"all")===key){pill.classList.add("active");hiddenWrap.style.display="flex"}hiddenWrap.appendChild(pill)});moreBtn.addEventListener("click",()=>{const isOpen=hiddenWrap.style.display==="flex";hiddenWrap.style.display=isOpen?"none":"flex";moreBtn.textContent=isOpen?"More Categories":"Less Categories"});categoriesFilterBar.appendChild(hiddenWrap)}
     function getSelectedMainCategoryConfig(){return CATEGORY_GROUPS[selectedType]||CATEGORY_GROUPS.all}
-    function renderPageHeader(){const config=getSelectedMainCategoryConfig();categoryPageTitle.textContent=config.title;categoryPageSubtitle.textContent=config.subtitle}
+    function renderPageHeader(){const config=getSelectedMainCategoryConfig();categoryPageTitle.textContent=config.title;categoryPageSubtitle.textContent=config.subtitle;setHeroBg(config.title)}
     function normalizeLocationText(vendor){const parts=[vendor.serviceAreas||"",vendor.displayLocation||"",...(Array.isArray(vendor.regions)?vendor.regions:[]),...(Array.isArray(vendor.states)?vendor.states:[]),...(Array.isArray(vendor.countries)?vendor.countries:[]),vendor.country||""];return parts.join(" ").toLowerCase().replace(/\s+/g," ").trim()}
-    function getKeywordSearchText(vendor){return`${vendor.businessName||""}${vendor.bio||""}${vendor.shortBio||""}${vendor.description||""}${vendor.tagline||""}${vendor.serviceAreas||""}${vendor.displayLocation||""}${vendor.availabilityStatus||""}${vendor.bookingNotes||""}${cleanArray(vendor.blockedDates).join(" ")}${cleanArray(vendor.categories).join(" ")}${cleanArray(vendor.regions).join(" ")}${cleanArray(vendor.states).join(" ")}${cleanArray(vendor.countries).join(" ")}${cleanArray(vendor.styleTags).join(" ")}`.toLowerCase()}
+    function getKeywordSearchText(vendor){return(vendor.businessName||"")+(vendor.bio||"")+(vendor.shortBio||"")+(vendor.description||"")+(vendor.tagline||"")+(vendor.serviceAreas||"")+(vendor.displayLocation||"")+(vendor.availabilityStatus||"")+(vendor.bookingNotes||"")+cleanArray(vendor.blockedDates).join(" ")+cleanArray(vendor.categories).join(" ")+cleanArray(vendor.regions).join(" ")+cleanArray(vendor.states).join(" ")+cleanArray(vendor.countries).join(" ")+cleanArray(vendor.styleTags).join(" ")}
     function vendorMatchesMainCategory(vendor,mainCategory){if(mainCategory==="all")return true;return getVendorCategories(vendor).some(category=>getMainCategoryForSubcategory(category)===mainCategory)}
     function vendorMatchesSubcategory(vendor,subcategory){if(subcategory==="all")return true;return getVendorCategories(vendor).includes(subcategory)}
     function vendorMatchesLocation(vendor,locationValue){const q=String(locationValue||"").trim().toLowerCase();if(!q)return true;const locationText=normalizeLocationText(vendor);if(q==="australia & new zealand")return locationText.includes("australia")||locationText.includes("new zealand");if(q==="united kingdom & ireland")return locationText.includes("united kingdom")||locationText.includes("uk")||locationText.includes("ireland");if(q==="north america")return locationText.includes("united states")||locationText.includes("usa")||locationText.includes("canada")||locationText.includes("mexico")||locationText.includes("north america");if(q==="south america")return locationText.includes("south america")||locationText.includes("brazil")||locationText.includes("argentina")||locationText.includes("chile");if(q==="asia")return locationText.includes("asia")||locationText.includes("philippines")||locationText.includes("singapore")||locationText.includes("indonesia")||locationText.includes("thailand")||locationText.includes("malaysia")||locationText.includes("japan")||locationText.includes("india")||locationText.includes("china")||locationText.includes("bali");if(q==="europe")return locationText.includes("europe")||locationText.includes("england")||locationText.includes("scotland")||locationText.includes("france")||locationText.includes("italy")||locationText.includes("spain")||locationText.includes("greece")||locationText.includes("portugal")||locationText.includes("germany");if(q==="worldwide")return true;return locationText.includes(q)}
-    function vendorMatchesKeyword(vendor,keywordValue){const q=String(keywordValue||"").trim().toLowerCase();if(!q)return true;return getKeywordSearchText(vendor).includes(q)}
+    function vendorMatchesKeyword(vendor,keywordValue){const q=String(keywordValue||"").trim().toLowerCase();if(!q)return true;return getKeywordSearchText(vendor).toLowerCase().includes(q)}
     function normalizeDateValue(value){if(!value)return"";if(typeof value==="string")return value.slice(0,10);if(value.toDate)return value.toDate().toISOString().slice(0,10);return""}
     function vendorMatchesDate(vendor,dateValue){const q=String(dateValue||"").trim();if(!q)return true;const blockedDates=cleanArray(vendor.blockedDates).map(normalizeDateValue);return!blockedDates.includes(q)}
-    function renderVendors(vendors){categoriesGrid.innerHTML="";resultsCount.textContent=String(vendors.length);if(!vendors.length){categoriesEmpty.style.display="block";return}categoriesEmpty.style.display="none";vendors.forEach((vendor)=>{const card=document.createElement("article");card.className="category-vendor-card";const image=getCardImage(vendor);const name=(vendor.businessName||"Vendor").trim();const categoryLine=getCategoryLine(vendor);const locationLine=getLocationLine(vendor);const bio=getShortBio(vendor);card.innerHTML=`<div class="category-vendor-card-img-wrap"><img src="${image}" alt="${name}" loading="lazy"><div class="category-vendor-card-overlay"></div><div class="category-vendor-card-hover"><p class="category-vendor-card-bio">${bio}</p><button type="button" class="category-vendor-btn">View Profile</button></div></div><div class="category-vendor-info">${categoryLine?`<p class="category-vendor-meta">${categoryLine}</p>`:""}<p class="category-vendor-name">${name}</p>${locationLine?`<p class="category-vendor-location">${locationLine}</p>`:""}</div><div class="category-vendor-actions"></div>`;card.addEventListener("click",()=>goToVendor(vendor));card.querySelector(".category-vendor-btn").addEventListener("click",(event)=>{event.stopPropagation();goToVendor(vendor)});categoriesGrid.appendChild(card)})}
-    function updateUrlFromFilters(){const mainCategory=mainCategorySelect.value||"all";const subcategory=subCategorySelect.value||"all";const location=locationSearch.value.trim();const keyword=keywordSearch.value.trim();const nextParams=new URLSearchParams();if(mainCategory!=="all")nextParams.set("type",mainCategory);if(subcategory!=="all")nextParams.set("subcategory",subcategory);if(location)nextParams.set("location",location);if(keyword)nextParams.set("search",keyword);const nextUrl=nextParams.toString()?`${window.location.pathname}?${nextParams.toString()}`:window.location.pathname;window.history.replaceState({},"",nextUrl)}
-    function applyFilters(){const mainCategory=mainCategorySelect.value||"all";const subcategory=subCategorySelect.value||"all";const location=locationSearch.value.trim();const keyword=keywordSearch.value.trim();const date=dateSearch.value.trim();const headerConfig=CATEGORY_GROUPS[mainCategory]||CATEGORY_GROUPS.all;categoryPageTitle.textContent=headerConfig.title;categoryPageSubtitle.textContent=headerConfig.subtitle;document.querySelectorAll(".categories-filter-pill").forEach((pill)=>{pill.classList.toggle("active",pill.dataset.type===mainCategory)});const filtered=allLiveVendors.filter(vendor=>vendorMatchesMainCategory(vendor,mainCategory)&&vendorMatchesSubcategory(vendor,subcategory)&&vendorMatchesLocation(vendor,location)&&vendorMatchesKeyword(vendor,keyword)&&vendorMatchesDate(vendor,date));renderVendors(filtered);updateUrlFromFilters()}
-    async function loadVendors(){try{const snapshot=await getDocs(collection(db,"vendors"));const liveVendors=[];snapshot.forEach((docSnap)=>{const vendor=docSnap.data();if(vendor&&vendor.businessName&&vendor.profileVisible!==false&&vendor.published!==false)liveVendors.push({...vendor,docId:docSnap.id})});allLiveVendors=liveVendors;applyFilters()}catch(error){console.error("Vendor load error:",error);categoriesEmpty.style.display="block";categoriesEmpty.textContent="There was a problem loading vendors."}}
+
+    /* ── RENDER VENDORS — identical card HTML to original ── */
+    function renderVendors(vendors){
+      categoriesGrid.innerHTML="";
+      resultsCount.textContent=String(vendors.length);
+      if(!vendors.length){categoriesEmpty.style.display="block";return}
+      categoriesEmpty.style.display="none";
+      vendors.forEach((vendor)=>{
+        const card=document.createElement("article");
+        card.className="category-vendor-card";
+        const image=getCardImage(vendor);
+        const name=(vendor.businessName||"Vendor").trim();
+        const categoryLine=getCategoryLine(vendor);
+        const locationLine=getLocationLine(vendor);
+        const bio=getShortBio(vendor);
+        card.innerHTML='<div class="category-vendor-card-img-wrap"><img src="'+image+'" alt="'+name+'" loading="lazy"><div class="category-vendor-card-overlay"></div><div class="category-vendor-card-hover"><p class="category-vendor-card-bio">'+bio+'</p><button type="button" class="category-vendor-btn">View Profile</button></div></div><div class="category-vendor-info">'+(categoryLine?'<p class="category-vendor-meta">'+categoryLine+'</p>':'')+'<p class="category-vendor-name">'+name+'</p>'+(locationLine?'<p class="category-vendor-location">'+locationLine+'</p>':'')+'</div><div class="category-vendor-actions"></div>';
+        card.addEventListener("click",()=>goToVendor(vendor));
+        card.querySelector(".category-vendor-btn").addEventListener("click",(event)=>{event.stopPropagation();goToVendor(vendor)});
+        categoriesGrid.appendChild(card);
+      });
+    }
+
+    function updateUrlFromFilters(){const mainCategory=mainCategorySelect.value||"all";const subcategory=subCategorySelect.value||"all";const location=locationSearch.value.trim();const keyword=keywordSearch.value.trim();const nextParams=new URLSearchParams();if(mainCategory!=="all")nextParams.set("type",mainCategory);if(subcategory!=="all")nextParams.set("subcategory",subcategory);if(location)nextParams.set("location",location);if(keyword)nextParams.set("search",keyword);const nextUrl=nextParams.toString()?window.location.pathname+"?"+nextParams.toString():window.location.pathname;window.history.replaceState({},"",nextUrl)}
+
+    function applyFilters(){
+      const mainCategory=mainCategorySelect.value||"all";
+      const subcategory=subCategorySelect.value||"all";
+      const location=locationSearch.value.trim();
+      const keyword=keywordSearch.value.trim();
+      const date=dateSearch.value.trim();
+      const headerConfig=CATEGORY_GROUPS[mainCategory]||CATEGORY_GROUPS.all;
+      categoryPageTitle.textContent=headerConfig.title;
+      categoryPageSubtitle.textContent=headerConfig.subtitle;
+      setHeroBg(headerConfig.title);
+      document.querySelectorAll(".categories-filter-pill").forEach((pill)=>{pill.classList.toggle("active",pill.dataset.type===mainCategory)});
+      const filtered=allLiveVendors.filter(vendor=>vendorMatchesMainCategory(vendor,mainCategory)&&vendorMatchesSubcategory(vendor,subcategory)&&vendorMatchesLocation(vendor,location)&&vendorMatchesKeyword(vendor,keyword)&&vendorMatchesDate(vendor,date));
+      /* ── shuffle filtered results so order is random each visit ── */
+      for(let i=filtered.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[filtered[i],filtered[j]]=[filtered[j],filtered[i]];}
+      renderVendors(filtered);
+      updateUrlFromFilters();
+    }
+
+    async function loadVendors(){
+      try{
+        const snapshot=await getDocs(collection(db,"vendors"));
+        const liveVendors=[];
+        snapshot.forEach((docSnap)=>{const vendor=docSnap.data();if(vendor&&vendor.businessName&&vendor.profileVisible!==false&&vendor.published!==false)liveVendors.push({...vendor,docId:docSnap.id})});
+        /* ── initial shuffle so first load is random ── */
+        for(let i=liveVendors.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[liveVendors[i],liveVendors[j]]=[liveVendors[j],liveVendors[i]];}
+        allLiveVendors=liveVendors;
+        applyFilters();
+      }catch(error){console.error("Vendor load error:",error);categoriesEmpty.style.display="block";categoriesEmpty.textContent="There was a problem loading vendors."}
+    }
+
     function syncInitialFilters(){buildMainCategoryOptions();buildSubcategoryOptions(selectedType==="all"?"all":selectedType);mainCategorySelect.value=CATEGORY_GROUPS[selectedType]?selectedType:"all";const currentSubcategoryExists=Array.from(subCategorySelect.options).some(option=>option.value===selectedSubcategory);subCategorySelect.value=currentSubcategoryExists?selectedSubcategory:"all";locationSearch.value=selectedLocation;keywordSearch.value=selectedSearch}
-    mainCategorySelect.addEventListener("change",()=>{buildSubcategoryOptions(mainCategorySelect.value);subCategorySelect.value="all";applyFilters()});subCategorySelect.addEventListener("change",applyFilters);searchBtn.addEventListener("click",applyFilters);locationSearch.addEventListener("keydown",(event)=>{if(event.key==="Enter"){event.preventDefault();applyFilters()}});keywordSearch.addEventListener("keydown",(event)=>{if(event.key==="Enter"){event.preventDefault();applyFilters()}});clearFiltersBtn.addEventListener("click",()=>{mainCategorySelect.value="all";buildSubcategoryOptions("all");subCategorySelect.value="all";locationSearch.value="";keywordSearch.value="";dateSearch.value="";applyFilters()});
-    buildFilterPills();renderPageHeader();syncInitialFilters();loadVendors();
+
+    mainCategorySelect.addEventListener("change",()=>{buildSubcategoryOptions(mainCategorySelect.value);subCategorySelect.value="all";applyFilters()});
+    subCategorySelect.addEventListener("change",applyFilters);
+    searchBtn.addEventListener("click",applyFilters);
+    locationSearch.addEventListener("keydown",(event)=>{if(event.key==="Enter"){event.preventDefault();applyFilters()}});
+    keywordSearch.addEventListener("keydown",(event)=>{if(event.key==="Enter"){event.preventDefault();applyFilters()}});
+    clearFiltersBtn.addEventListener("click",()=>{mainCategorySelect.value="all";buildSubcategoryOptions("all");subCategorySelect.value="all";locationSearch.value="";keywordSearch.value="";dateSearch.value="";applyFilters()});
+
+    buildFilterPills();
+    renderPageHeader();
+    syncInitialFilters();
+    loadVendors();
 </script>
 <script type="module" src="nav.js"></script>
 </body>
