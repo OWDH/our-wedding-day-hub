@@ -274,6 +274,20 @@ async function load() {
     // Show bottom bar
     if (bottomBar) bottomBar.style.display = 'flex';
 
+    // ── INSTAGRAM EMBEDS ──
+    // If the article body contains Instagram embed blockquotes, load/re-process them
+    if (bodyContent.includes('instagram-media')) {
+      if (window.instgrm && window.instgrm.Embeds) {
+        window.instgrm.Embeds.process();
+      } else {
+        var igScript = document.createElement('script');
+        igScript.src = 'https://www.instagram.com/embed.js';
+        igScript.async = true;
+        igScript.defer = true;
+        document.body.appendChild(igScript);
+      }
+    }
+
   } catch(e) {
     console.error('Article load error:', e);
     container.innerHTML = '<div class="not-found"><h2>Could not load article</h2><p><a href="journal.html">Back to The Journal</a></p></div>';
