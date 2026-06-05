@@ -157,6 +157,16 @@
     }
     @media(min-width:701px){.mobile-menu-btn{display:none}}
   </style>
+  <!-- Pre-load Instagram embed script so it's ready when article loads -->
+  <script>
+  (function() {
+    var s = document.createElement('script');
+    s.src = 'https://www.instagram.com/embed.js';
+    s.async = true;
+    s.id = 'ig-embed-script';
+    document.head.appendChild(s);
+  })();
+  </script>
 </head>
 <body>
 <div id="siteNav"></div>
@@ -210,6 +220,23 @@ function formatArticleDate(d) {
   return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// Decode HTML entities that may have been double-encoded when stored in Firestore
+function decodeHtmlEntities(str) {
+  var txt = document.createElement('textarea');
+  txt.innerHTML = str;
+  return txt.value;
+}
+
+// Clean body content — decode entities and ensure embed codes are actual HTML
+function prepareBodyContent(raw) {
+  if (!raw) return '';
+  // If the content appears to be double-encoded (contains &lt;blockquote)
+  if (raw.includes('&lt;blockquote') || raw.includes('&lt;iframe') || raw.includes('&lt;script')) {
+    return decodeHtmlEntities(raw);
+  }
+  return raw;
+}
+
 async function load() {
   if (!articleId) {
     container.innerHTML = '<div class="not-found"><h2>Article not found</h2><p><a href="journal.html">Back to The Journal</a></p></div>';
@@ -240,7 +267,7 @@ async function load() {
     document.title = (a.title || 'Article') + ' | Our Wedding Day Hub';
 
     const coverImg = a.image || a.coverImage || '';
-    const bodyContent = a.bodyHtml || a.body || a.content || '';
+    const bodyContent = prepareBodyContent(a.bodyHtml || a.body || a.content || '');
     const dateStr = formatArticleDate(parseArticleDate(a));
     const metaLine = [a.author, dateStr].filter(Boolean).join(' \u00b7 ');
 
@@ -305,24 +332,13 @@ async function load() {
     if (bodyContent.includes('instagram-media') || bodyContent.includes('instagram.com')) {
       var processIG = function() {
         if (window.instgrm && window.instgrm.Embeds) {
-          window.instgrm.Embeds.process();
+          try { window.instgrm.Embeds.process(); } catch(e) {}
         }
       };
-      if (window.instgrm && window.instgrm.Embeds) {
-        // Script already loaded — process after short delay so DOM is painted
-        setTimeout(processIG, 100);
-      } else {
-        // Load the script fresh; it auto-processes on load
-        var existingIg = document.getElementById('ig-embed-script');
-        if (existingIg) { existingIg.parentNode.removeChild(existingIg); }
-        var igScript = document.createElement('script');
-        igScript.id = 'ig-embed-script';
-        igScript.src = 'https://www.instagram.com/embed.js';
-        igScript.async = true;
-        document.body.appendChild(igScript);
-        // Also try processing after a delay in case script was cached
-        setTimeout(processIG, 1500);
-      }
+      // Try immediately, then retry at intervals to catch late script load
+      setTimeout(processIG, 200);
+      setTimeout(processIG, 800);
+      setTimeout(processIG, 2000);
     }
 
   } catch(e) {
