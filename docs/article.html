@@ -55,6 +55,33 @@
     .article-body a:hover{color:var(--ink)}
     .article-body strong{color:var(--ink);font-weight:700}
 
+    /* ── INSTAGRAM EMBED CONTAINER ── */
+    .article-body .instagram-media{max-width:540px!important;margin:28px auto!important}
+    /* Hide raw unprocessed blockquote text until Instagram JS renders it */
+    .article-body blockquote.instagram-media:not([data-instgrm-version]){
+      background:var(--cream-deep)!important;
+      border-left:none!important;
+      padding:40px 24px!important;
+      text-align:center;
+      font-family:var(--font-sans)!important;
+      font-style:normal!important;
+      font-size:.78rem!important;
+      color:var(--ink-ghost)!important;
+      line-height:1.5!important;
+      overflow:hidden;
+      max-height:80px
+    }
+    .article-body blockquote.instagram-media:not([data-instgrm-version]) *{display:none!important}
+    .article-body blockquote.instagram-media:not([data-instgrm-version])::before{
+      content:'Loading Instagram post6';
+      display:block;
+      font-family:var(--font-sans);
+      font-size:.75rem;
+      letter-spacing:.1em;
+      text-transform:uppercase;
+      color:var(--ink-ghost)
+    }
+
     /* ── SIDEBAR ── */
     .article-sidebar{background:var(--cream-warm);padding:36px 28px;display:flex;flex-direction:column;gap:28px;position:sticky;top:64px;align-self:start;border-left:.5px solid var(--ink-rule)}
     .sidebar-divider{height:.5px;background:var(--ink-rule)}
@@ -275,16 +302,26 @@ async function load() {
     if (bottomBar) bottomBar.style.display = 'flex';
 
     // ── INSTAGRAM EMBEDS ──
-    // If the article body contains Instagram embed blockquotes, load/re-process them
-    if (bodyContent.includes('instagram-media')) {
+    if (bodyContent.includes('instagram-media') || bodyContent.includes('instagram.com')) {
+      var processIG = function() {
+        if (window.instgrm && window.instgrm.Embeds) {
+          window.instgrm.Embeds.process();
+        }
+      };
       if (window.instgrm && window.instgrm.Embeds) {
-        window.instgrm.Embeds.process();
+        // Script already loaded — process after short delay so DOM is painted
+        setTimeout(processIG, 100);
       } else {
+        // Load the script fresh; it auto-processes on load
+        var existingIg = document.getElementById('ig-embed-script');
+        if (existingIg) { existingIg.parentNode.removeChild(existingIg); }
         var igScript = document.createElement('script');
+        igScript.id = 'ig-embed-script';
         igScript.src = 'https://www.instagram.com/embed.js';
         igScript.async = true;
-        igScript.defer = true;
         document.body.appendChild(igScript);
+        // Also try processing after a delay in case script was cached
+        setTimeout(processIG, 1500);
       }
     }
 
