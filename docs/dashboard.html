@@ -829,9 +829,13 @@ import { LOCATION_DATA } from "./locations.js";
     let uploadFile = file;
     let fileName = String(Date.now()) + "-" + safeBase;
     if (isImage) {
-      // Try WebP conversion — if anything fails at any step, fall back to original file
+      // Try WebP conversion with a hard 8s timeout — prevents freezing on iPhone HEIC/HEIF
       try {
         var converted = await new Promise(function(resolve) {
+          var settled = false;
+          function done(result) { if (!settled) { settled = true; resolve(result); } }
+          // Timeout fallback — if anything hangs, give up after 8s and upload original
+          var timeout = setTimeout(function() { done(null); }, 8000);
           var img = new Image();
           img.onload = function() {
             try {
@@ -840,29 +844,29 @@ import { LOCATION_DATA } from "./locations.js";
               canvas.height = img.naturalHeight;
               canvas.getContext("2d").drawImage(img, 0, 0);
               canvas.toBlob(function(blob) {
+                clearTimeout(timeout);
                 if (blob && blob.size > 0) {
-                  resolve(new File([blob], safeBase + ".webp", { type: "image/webp" }));
+                  done(new File([blob], safeBase + ".webp", { type: "image/webp" }));
                 } else {
-                  resolve(null); // blob failed — signal fallback
+                  done(null); // blob failed — signal fallback
                 }
               }, "image/webp", 0.9);
             } catch(canvasErr) {
-              resolve(null); // canvas failed — signal fallback
+              clearTimeout(timeout);
+              done(null); // canvas failed — signal fallback
             }
           };
-          img.onerror = function() { resolve(null); }; // load failed — signal fallback
+          img.onerror = function() { clearTimeout(timeout); done(null); };
           img.src = URL.createObjectURL(file);
         });
         if (converted && converted.size > 0) {
           uploadFile = converted;
           fileName += ".webp";
         } else {
-          // Conversion returned nothing — upload original
           uploadFile = file;
           fileName += file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
         }
       } catch(uploadConvertErr) {
-        // Entire conversion block failed — upload original
         uploadFile = file;
         fileName += file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
       }
@@ -1123,26 +1127,77 @@ import { LOCATION_DATA } from "./locations.js";
     const testimonials = Array.isArray(vd.testimonials) ? vd.testimonials.filter(Boolean) : [];
     const list = document.getElementById("testimonialsList");
     if (!list) return;
-    if (!testimonials.length) {
-      list.innerHTML = '<p class="dashboard-help">No testimonials yet — add your first one below.</p>';
+    list.innerHTML = "";
+
+    // ── PENDING (submitted by couples on the public profile page) ──
+    var pendingSnap = null;
+    try { pendingSnap = await getDocs(collection(db, "vendors", uid, "pendingTestimonials")); }
+    catch(pe) { console.warn("Could not load pending:", pe); }
+
+    if (pendingSnap && !pendingSnap.empty) {
+      var ph = document.createElement("div");
+      ph.style.cssText = "margin-bottom:14px;padding:12px 16px;background:var(--cream-deep);border-left:2px solid var(--gold-light);";
+      ph.innerHTML = '<p style="font-family:var(--font-sans);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;">Awaiting Your Approval</p>'
+        + '<p style="font-family:var(--font-sans);font-size:.76rem;color:var(--ink-muted);">Submitted by couples from your profile. Approve to show publicly, or reject to remove.</p>';
+      list.appendChild(ph);
+      pendingSnap.forEach(function(pd) {
+        var pt = pd.data();
+        var pi = document.createElement("div");
+        pi.className = "testimonial-manage-item";
+        pi.style.borderLeft = "2px solid var(--gold-light)";
+        pi.innerHTML = '<p class="testimonial-manage-quote">"' + String(pt.quote||"").trim() + '"</p>'
+          + '<div class="testimonial-manage-meta"><span>' + String(pt.name||"").trim() + (pt.date?" · "+String(pt.date).trim():"") + '</span>'
+          + '<span style="display:flex;gap:6px;">'
+          + '<button type="button" class="testimonial-delete-btn" style="background:var(--ink);color:var(--cream);border-color:var(--ink);">Approve</button>'
+          + '<button type="button" class="testimonial-delete-btn">Reject</button>'
+          + '</span></div>';
+        var btns = pi.querySelectorAll("button");
+        btns[0].addEventListener("click", async function() {
+          var ex = [];
+          try { var vs = await getDoc(doc(db,"vendors",uid)); ex = vs.exists() && Array.isArray(vs.data().testimonials) ? vs.data().testimonials.slice() : []; } catch(e) {}
+          ex.push({ quote:pt.quote, name:pt.name, date:pt.date||"", approved:true });
+          await setDoc(doc(db,"vendors",uid), { testimonials:ex }, { merge:true });
+          await deleteDoc(doc(db,"vendors",uid,"pendingTestimonials",pd.id));
+          await loadTestimonials(uid);
+        });
+        btns[1].addEventListener("click", async function() {
+          await deleteDoc(doc(db,"vendors",uid,"pendingTestimonials",pd.id));
+          await loadTestimonials(uid);
+        });
+        list.appendChild(pi);
+      });
+      if (testimonials.length) {
+        var dv = document.createElement("div"); dv.style.cssText = "height:.5px;background:var(--ink-rule);margin:18px 0;"; list.appendChild(dv);
+        var lh = document.createElement("p"); lh.className = "dashboard-help"; lh.style.cssText = "font-weight:700;color:var(--ink);margin-bottom:10px;"; lh.textContent = "Live on your profile"; list.appendChild(lh);
+      }
+    }
+
+    if (!testimonials.length && (!pendingSnap || pendingSnap.empty)) {
+      list.innerHTML = '<p class="dashboard-help">No testimonials yet. Add your own below, or couples can submit from your public profile.</p>';
       window.updateDashBadge && window.updateDashBadge("testimonials", "todo", "○ None added");
       return;
     }
-    list.innerHTML = "";
+
     testimonials.forEach(function(t, i) {
       const item = document.createElement("div");
       item.className = "testimonial-manage-item";
-      item.innerHTML = '<p class="testimonial-manage-quote">“' + String(t.quote || "").trim() + '”</p>'
-        + '<div class="testimonial-manage-meta"><span>' + String(t.name || "").trim() + (t.date ? " · " + String(t.date).trim() : "") + '</span>'
+      item.innerHTML = '<p class="testimonial-manage-quote">"' + String(t.quote||"").trim() + '"</p>'
+        + '<div class="testimonial-manage-meta"><span>' + String(t.name||"").trim() + (t.date?" · "+String(t.date).trim():"") + '</span>'
         + '<button type="button" class="testimonial-delete-btn" data-index="' + i + '">Remove</button></div>';
       item.querySelector(".testimonial-delete-btn").addEventListener("click", async function() {
         const updated = testimonials.filter(function(_, idx) { return idx !== i; });
-        await setDoc(doc(db, "vendors", uid), { testimonials: updated }, { merge: true });
+        await setDoc(doc(db,"vendors",uid), { testimonials:updated }, { merge:true });
         await loadTestimonials(uid);
       });
       list.appendChild(item);
     });
-    window.updateDashBadge && window.updateDashBadge("testimonials", "ok", "✓ " + testimonials.length + " testimonial" + (testimonials.length === 1 ? "" : "s"));
+
+    var pendCount = pendingSnap ? pendingSnap.size : 0;
+    window.updateDashBadge && window.updateDashBadge("testimonials", testimonials.length > 0 ? "ok" : "todo",
+      testimonials.length > 0
+        ? ("✓ " + testimonials.length + " live" + (pendCount > 0 ? ", " + pendCount + " pending" : ""))
+        : (pendCount > 0 ? "○ " + pendCount + " pending approval" : "○ None added")
+    );
   }
 
   document.getElementById("addTestimonialBtn") && document.getElementById("addTestimonialBtn").addEventListener("click", async function() {
@@ -1153,6 +1208,8 @@ import { LOCATION_DATA } from "./locations.js";
     if (!quote) { if (msg) msg.textContent = "Please add what they said."; return; }
     if (!name)  { if (msg) msg.textContent = "Please add the couple’s name."; return; }
         if (!currentUser) { if (msg) msg.textContent = "Please log in to add a testimonial."; return; }
+    var addBtn = document.getElementById("addTestimonialBtn");
+    if (addBtn) addBtn.disabled = true;
     if (msg) msg.textContent = "Saving…";
     try {
       const snap = await getDoc(doc(db, "vendors", currentUser.uid));
@@ -1168,6 +1225,8 @@ import { LOCATION_DATA } from "./locations.js";
     } catch(err) {
       console.error("Testimonial save error:", err);
       if (msg) msg.textContent = "Could not save: " + (err && err.message ? err.message : "Unknown error. Please try again.");
+    } finally {
+      if (addBtn) addBtn.disabled = false;
     }
   });
 
