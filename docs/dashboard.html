@@ -827,21 +827,51 @@ import { LOCATION_DATA } from "./locations.js";
     const safeBase = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9._-]/g, "_");
     const isImage = file.type.startsWith("image/");
     let uploadFile = file;
-    let fileName = `${Date.now()}-${safeBase}`;
+    let fileName = String(Date.now()) + "-" + safeBase;
     if (isImage) {
+      // Try WebP conversion — if anything fails at any step, fall back to original file
       try {
-        uploadFile = await new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => { const canvas = document.createElement("canvas"); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; canvas.getContext("2d").drawImage(img, 0, 0); canvas.toBlob(blob => { if (!blob) reject(new Error("Conversion failed")); else resolve(new File([blob], `${safeBase}.webp`, { type: "image/webp" })); }, "image/webp", 0.9); };
-          img.onerror = reject;
+        var converted = await new Promise(function(resolve) {
+          var img = new Image();
+          img.onload = function() {
+            try {
+              var canvas = document.createElement("canvas");
+              canvas.width = img.naturalWidth;
+              canvas.height = img.naturalHeight;
+              canvas.getContext("2d").drawImage(img, 0, 0);
+              canvas.toBlob(function(blob) {
+                if (blob && blob.size > 0) {
+                  resolve(new File([blob], safeBase + ".webp", { type: "image/webp" }));
+                } else {
+                  resolve(null); // blob failed — signal fallback
+                }
+              }, "image/webp", 0.9);
+            } catch(canvasErr) {
+              resolve(null); // canvas failed — signal fallback
+            }
+          };
+          img.onerror = function() { resolve(null); }; // load failed — signal fallback
           img.src = URL.createObjectURL(file);
         });
-        fileName += ".webp";
-      } catch { fileName += file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : ""; }
-    } else { fileName += file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : ""; }
-    const r = ref(storage, `${folder}/${uid}/${fileName}`);
-    await uploadBytes(r, uploadFile, { contentType: uploadFile.type });
-    return await getDownloadURL(r);
+        if (converted && converted.size > 0) {
+          uploadFile = converted;
+          fileName += ".webp";
+        } else {
+          // Conversion returned nothing — upload original
+          uploadFile = file;
+          fileName += file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+        }
+      } catch(uploadConvertErr) {
+        // Entire conversion block failed — upload original
+        uploadFile = file;
+        fileName += file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+      }
+    } else {
+      fileName += file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+    }
+    var storageRef = ref(storage, folder + "/" + uid + "/" + fileName);
+    await uploadBytes(storageRef, uploadFile, { contentType: uploadFile.type });
+    return await getDownloadURL(storageRef);
   }
 
   function updateStripeStatus(v = {}) { if (stripeStatusText) stripeStatusText.textContent = (v.stripeConnected === true || v.stripeChargesEnabled === true || v.stripeAccountId) ? "Stripe: connected" : "Stripe: not connected"; }
@@ -1122,11 +1152,12 @@ import { LOCATION_DATA } from "./locations.js";
     const msg   = document.getElementById("testimonialMsg");
     if (!quote) { if (msg) msg.textContent = "Please add what they said."; return; }
     if (!name)  { if (msg) msg.textContent = "Please add the couple’s name."; return; }
+        if (!currentUser) { if (msg) msg.textContent = "Please log in to add a testimonial."; return; }
     if (msg) msg.textContent = "Saving…";
     try {
       const snap = await getDoc(doc(db, "vendors", currentUser.uid));
-      const existing = snap.exists() && Array.isArray(snap.data().testimonials) ? snap.data().testimonials : [];
-      existing.push({ quote, name, date: date || "" });
+      const existing = snap.exists() && Array.isArray(snap.data().testimonials) ? snap.data().testimonials.slice() : [];
+      existing.push({ quote: quote, name: name, date: date || "" });
       await setDoc(doc(db, "vendors", currentUser.uid), { testimonials: existing }, { merge: true });
       document.getElementById("testimonialQuote").value = "";
       document.getElementById("testimonialName").value = "";
@@ -1134,7 +1165,10 @@ import { LOCATION_DATA } from "./locations.js";
       if (msg) msg.textContent = "Testimonial added ♥";
       setTimeout(function() { if (msg) msg.textContent = ""; }, 3000);
       await loadTestimonials(currentUser.uid);
-    } catch(err) { console.error(err); if (msg) msg.textContent = "Could not save. Please try again."; }
+    } catch(err) {
+      console.error("Testimonial save error:", err);
+      if (msg) msg.textContent = "Could not save: " + (err && err.message ? err.message : "Unknown error. Please try again.");
+    }
   });
 
   onAuthStateChanged(auth, async (user) => {
