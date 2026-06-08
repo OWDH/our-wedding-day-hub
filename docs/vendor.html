@@ -160,6 +160,23 @@
     .msg-login-btn-ghost{background:none;border:.5px solid var(--ink-rule);color:var(--ink)}
     .msg-login-btn-ghost:hover{background:var(--cream-warm)}
 
+    /* ── TESTIMONIAL SUBMIT FORM ── */
+    .testi-submit-section{background:var(--cream-warm);padding:36px 44px;border-bottom:.5px solid var(--ink-rule)}
+    .testi-submit-title{font-family:var(--font-serif);font-size:1.5rem;font-weight:300;letter-spacing:-.02em;color:var(--ink);margin-bottom:6px}
+    .testi-submit-sub{font-family:var(--font-sans);font-size:.8rem;color:var(--ink-muted);line-height:1.7;margin-bottom:20px}
+    .testi-submit-form{display:grid;gap:0}
+    .testi-submit-field{position:relative;border-bottom:.5px solid var(--ink-rule);background:var(--cream)}
+    .testi-submit-field:last-of-type{border-bottom:none}
+    .testi-submit-field input,.testi-submit-field textarea{width:100%;border:none;background:transparent;padding:18px 16px 10px;font-family:var(--font-sans);font-size:.88rem;color:var(--ink);outline:none;transition:background .2s;box-sizing:border-box}
+    .testi-submit-field textarea{min-height:110px;resize:vertical}
+    .testi-submit-field input:focus,.testi-submit-field textarea:focus{background:var(--cream-warm)}
+    .testi-submit-field label{position:absolute;left:16px;top:14px;font-family:var(--font-sans);font-size:.82rem;color:var(--ink-ghost);pointer-events:none;transition:all .18s ease}
+    .testi-submit-field input:focus+label,.testi-submit-field input:not(:placeholder-shown)+label,.testi-submit-field textarea:focus+label,.testi-submit-field textarea:not(:placeholder-shown)+label{top:6px;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-ghost)}
+    .testi-submit-btn{margin-top:14px;display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:12px 24px;background:var(--ink);color:var(--cream);font-family:var(--font-sans);font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border:none;cursor:pointer;transition:background .2s;width:100%}
+    .testi-submit-btn:hover{background:var(--ink-mid)}
+    .testi-submit-btn:disabled{opacity:.5;cursor:default}
+    .testi-submit-msg{font-family:var(--font-serif);font-style:italic;font-size:.92rem;color:var(--gold);margin-top:12px;min-height:1.2em;text-align:center}
+
     /* ── FOOTER ── */
     .site-footer{background:var(--ink);border-top:1px solid var(--ink-mid)}
     .footer-content{padding:72px 50px 58px;display:grid;grid-template-columns:1.2fr .8fr;gap:90px;align-items:center;max-width:1280px;margin:0 auto}
@@ -261,6 +278,19 @@
       <section class="vendor-card" id="testimonialsCard" style="display:none;">
         <h2 class="vendor-section-title">Kind Words</h2>
         <div id="vendorTestimonials"></div>
+      </section>
+
+      <!-- Public testimonial submission form -->
+      <section class="testi-submit-section vendor-card" id="testiSubmitSection">
+        <h2 class="testi-submit-title">Leave a Kind Word</h2>
+        <p class="testi-submit-sub">Worked with this vendor? Share your experience — your review will appear on their profile once approved.</p>
+        <div class="testi-submit-form" id="testiSubmitForm">
+          <div class="testi-submit-field"><textarea id="testiPublicQuote" placeholder=" " required></textarea><label for="testiPublicQuote">Your testimonial</label></div>
+          <div class="testi-submit-field"><input type="text" id="testiPublicName" placeholder=" " required><label for="testiPublicName">Your name (e.g. Emma &amp; James)</label></div>
+          <div class="testi-submit-field"><input type="text" id="testiPublicDate" placeholder=" "><label for="testiPublicDate">Wedding / event date (optional)</label></div>
+        </div>
+        <button type="button" class="testi-submit-btn" id="testiPublicSubmitBtn">Submit Testimonial &#8594;</button>
+        <p class="testi-submit-msg" id="testiPublicMsg"></p>
       </section>
 
       <!-- Availability Calendar -->
@@ -603,11 +633,13 @@ function renderBooking(v) {
 }
 
 function renderTestimonials(v) {
-  var testimonials = Array.isArray(v.testimonials) ? v.testimonials.filter(function(t){return t&&t.quote&&String(t.quote).trim();}) : [];
-  if (!testimonials.length) { hide(testimonialsCard); return; }
+  var all = Array.isArray(v.testimonials) ? v.testimonials.filter(function(t){ return t && t.quote && String(t.quote).trim(); }) : [];
+  // Only show approved ones (approved:true) OR manually added by vendor (no approved field = legacy)
+  var approved = all.filter(function(t){ return t.approved === true || t.approved === undefined; });
+  if (!approved.length) { hide(testimonialsCard); return; }
   vendorTestimonials.className = "testimonial-list";
-  vendorTestimonials.innerHTML = testimonials.map(function(t) {
-    return '<div class="testimonial-item"><p class="testimonial-quote">\u201c'+String(t.quote||"").trim()+'\u201d</p><p class="testimonial-name">'+String(t.name||"Happy client").trim()+(t.date?'<span class="testimonial-date"> \u00b7 '+String(t.date).trim()+"</span>":"")+"</p></div>";
+  vendorTestimonials.innerHTML = approved.map(function(t) {
+    return '<div class="testimonial-item"><p class="testimonial-quote">“'+String(t.quote||"").trim()+'”</p><p class="testimonial-name">'+String(t.name||"Happy client").trim()+(t.date?'<span class="testimonial-date"> · '+String(t.date).trim()+"</span>":"")+"</p></div>";
   }).join("");
   show(testimonialsCard, "block");
 }
@@ -798,6 +830,42 @@ galleryDots.addEventListener("click", stopAutoplay);
 
 loadVendor();
 setTimeout(startAutoplay, 1200);
+
+// ── PUBLIC TESTIMONIAL SUBMIT ──
+document.getElementById("testiPublicSubmitBtn").addEventListener("click", async function() {
+  var quote = document.getElementById("testiPublicQuote").value.trim();
+  var name  = document.getElementById("testiPublicName").value.trim();
+  var date  = document.getElementById("testiPublicDate").value.trim();
+  var msg   = document.getElementById("testiPublicMsg");
+  var btn   = document.getElementById("testiPublicSubmitBtn");
+  if (!quote) { msg.textContent = "Please write your testimonial."; return; }
+  if (!name)  { msg.textContent = "Please add your name."; return; }
+  if (!vendorId) { msg.textContent = "Could not identify vendor. Please refresh."; return; }
+  btn.disabled = true;
+  msg.textContent = "Submitting…";
+  try {
+    // Save to a pendingTestimonials subcollection under the vendor doc
+    // Vendor reviews these from their dashboard and approves/rejects
+    var pending = collection(db, "vendors", vendorId, "pendingTestimonials");
+    await addDoc(pending, {
+      quote: quote,
+      name: name,
+      date: date || "",
+      vendorId: vendorId,
+      approved: false,
+      submittedAt: serverTimestamp()
+    });
+    document.getElementById("testiPublicQuote").value = "";
+    document.getElementById("testiPublicName").value = "";
+    document.getElementById("testiPublicDate").value = "";
+    msg.textContent = "Thank you ♥ Your review has been submitted and will appear once approved.";
+    btn.disabled = false;
+  } catch(err) {
+    console.error("Testimonial submit error:", err);
+    msg.textContent = "Could not submit. Please try again.";
+    btn.disabled = false;
+  }
+});
 </script>
 
 <script type="module" src="nav.js"></script>
