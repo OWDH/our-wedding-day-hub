@@ -408,7 +408,10 @@
 import { db, auth, storage, collection, getDocs, doc, updateDoc, onAuthStateChanged, ref, uploadBytes, getDownloadURL } from "./firebase.js";
 import { LOCATION_DATA } from "./locations.js";
 
-const ADMIN_EMAILS = ["stephanie@ourweddingdayhub.com"];
+const ADMIN_EMAILS = [
+  "stephanie@ourweddingdayhub.com",
+  "robyn@ourweddingdayhub.com"
+];
 const $ = id => document.getElementById(id);
 
 const authStatus           = $("authStatus");
