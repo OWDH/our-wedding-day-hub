@@ -28,6 +28,18 @@
     .role-tab{padding:12px 16px;text-align:center;font-family:var(--font-sans);font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;border:none;background:var(--cream);color:var(--ink-muted);transition:all .2s}
     .role-tab.active{background:var(--ink);color:var(--cream)}
     .role-tab:first-child{border-right:.5px solid var(--ink-rule)}
+
+    /* ── TIER SELECTION (vendor only) ── */
+    .tier-select-wrap{margin-bottom:24px}
+    .tier-select-label{font-family:var(--font-sans);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:10px}
+    .tier-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .tier-card{border:.5px solid var(--ink-rule);background:var(--cream);padding:14px 14px 12px;cursor:pointer;transition:all .18s ease;position:relative}
+    .tier-card:hover{border-color:var(--ink-muted);background:var(--cream-warm)}
+    .tier-card.selected{border-color:var(--ink);background:var(--ink);}
+    .tier-card.selected .tier-name,.tier-card.selected .tier-price{color:var(--cream)}
+    .tier-name{font-family:var(--font-serif);font-size:1.05rem;font-weight:400;color:var(--ink);margin-bottom:2px}
+    .tier-price{font-family:var(--font-sans);font-size:.78rem;color:var(--ink-muted)}
+    .tier-card.selected .tier-price{color:rgba(250,250,248,.6)}
     .signup-form{display:grid;gap:0;border:.5px solid var(--ink-rule)}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:0}
     .form-field{position:relative;border-bottom:.5px solid var(--ink-rule);background:var(--cream)}
@@ -96,6 +108,15 @@
         <button type="button" class="role-tab active" id="tabVendor" onclick="setRole('vendor')">I'm a Vendor</button>
         <button type="button" class="role-tab" id="tabCouple" onclick="setRole('couple')">I'm a Couple</button>
       </div>
+      <div class="tier-select-wrap vendor-only" id="tierSelectWrap">
+        <p class="tier-select-label">Choose your membership tier</p>
+        <div class="tier-grid" id="tierGrid">
+          <div class="tier-card selected" data-tier="edit" data-price="54.75" data-link="https://buy.stripe.com/bJe28reSg8FF4H70XodnW00"><p class="tier-name">Edit</p><p class="tier-price">$54.75</p></div>
+          <div class="tier-card" data-tier="spotlight" data-price="55.95" data-link="https://buy.stripe.com/eVq6oH39y5ttehH5dEdnW01"><p class="tier-name">Spotlight</p><p class="tier-price">$55.95</p></div>
+          <div class="tier-card" data-tier="feature" data-price="57.25" data-link="https://buy.stripe.com/7sY4gz6lKcVV5Lb21sdnW02"><p class="tier-name">Feature</p><p class="tier-price">$57.25</p></div>
+          <div class="tier-card" data-tier="icon" data-price="59.95" data-link="https://buy.stripe.com/cNibJ1eSg099flL49AdnW03"><p class="tier-name">Icon</p><p class="tier-price">$59.95</p></div>
+        </div>
+      </div>
       <form id="signupForm" class="signup-form">
         <div class="form-row vendor-only">
           <div class="form-field"><input type="text" id="businessName" placeholder=" "><label for="businessName">Business Name</label></div>
@@ -141,11 +162,24 @@
 <script type="module">
   import { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp } from './firebase.js';
   let currentRole = 'vendor';
+  let selectedTier = 'edit';
+  let selectedTierLink = 'https://buy.stripe.com/bJe28reSg8FF4H70XodnW00';
+
+  document.querySelectorAll('.tier-card').forEach(function(card) {
+    card.addEventListener('click', function() {
+      document.querySelectorAll('.tier-card').forEach(function(c) { c.classList.remove('selected'); });
+      card.classList.add('selected');
+      selectedTier = card.dataset.tier;
+      selectedTierLink = card.dataset.link;
+    });
+  });
+
   window.setRole = function(role) {
     currentRole = role;
     document.getElementById('tabVendor').classList.toggle('active', role === 'vendor');
     document.getElementById('tabCouple').classList.toggle('active', role === 'couple');
     document.querySelectorAll('.vendor-only').forEach(el => el.style.display = role === 'vendor' ? 'grid' : 'none');
+    document.getElementById('tierSelectWrap').style.display = role === 'vendor' ? 'block' : 'none';
     document.querySelectorAll('.couple-fields').forEach(el => el.style.display = role === 'couple' ? 'grid' : 'none');
     document.getElementById('signupSubtitle').textContent = role === 'vendor'
       ? 'Create your vendor account to showcase your business to couples planning their wedding.'
@@ -167,9 +201,19 @@
         userData.businessName = document.getElementById('businessName').value.trim();
         userData.primaryCategory = document.getElementById('primaryCategory').value;
         await setDoc(doc(db, 'users', uid), userData);
-        await setDoc(doc(db, 'vendors', uid), { ...userData, approved: false, visible: false });
-        msg.textContent = 'Account created! Redirecting to your dashboard…';
-        setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+        await setDoc(doc(db, 'vendors', uid), {
+          ...userData,
+          approved: false,
+          visible: false,
+          profileVisible: false,
+          published: false,
+          membershipTier: selectedTier,
+          paymentStatus: 'pending',
+          subscriptionActive: false
+        });
+        msg.textContent = 'Account created! Redirecting you to payment\u2026';
+        const paymentUrl = selectedTierLink + '?client_reference_id=' + uid + '&prefilled_email=' + encodeURIComponent(email);
+        setTimeout(() => { window.location.href = paymentUrl; }, 1200);
       } else {
         userData.partnerOne = document.getElementById('partnerOne').value.trim();
         userData.partnerTwo = document.getElementById('partnerTwo').value.trim();
