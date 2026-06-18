@@ -31,36 +31,77 @@
     body { background: var(--cream); font-family: var(--font-sans); color: var(--ink); -webkit-font-smoothing: antialiased; min-height: 100vh; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-    .admin-page { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; display: grid; gap: 0; }
-
-    /* HERO */
-    .admin-hero { border: 0.5px solid var(--ink-rule); border-bottom: 1px solid var(--ink); background: var(--cream); overflow: hidden; }
-    .admin-hero-inner { padding: 48px 52px; animation: fadeUp 0.6s ease forwards; }
-    .admin-eyebrow { font-family: var(--font-sans); font-size: 0.65rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-ghost); margin-bottom: 10px; }
-    .admin-hero-logo { width: 56px; display: block; margin-bottom: 18px; opacity: 0.8; }
-    .admin-hero-title { font-family: var(--font-serif); font-size: clamp(2.2rem, 4vw, 3.4rem); font-weight: 300; line-height: 0.95; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 10px; }
-    .admin-hero-text { font-family: var(--font-sans); font-size: 0.85rem; color: var(--ink-muted); line-height: 1.8; max-width: 480px; margin-bottom: 16px; }
-    .auth-status { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 0.5px solid var(--ink-rule); font-family: var(--font-sans); font-size: 0.76rem; font-weight: 700; color: var(--ink-muted); background: var(--cream-warm); }
+    /* ── HERO ── */
+    .admin-hero { border: 0.5px solid var(--ink-rule); border-bottom: 1px solid var(--ink); background: var(--cream); }
+    .admin-hero-inner { padding: 32px 36px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; animation: fadeUp 0.6s ease forwards; }
+    .admin-hero-left { display: flex; align-items: center; gap: 16px; }
+    .admin-hero-logo { width: 40px; opacity: 0.8; flex-shrink: 0; }
+    .admin-hero-title { font-family: var(--font-serif); font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 300; letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+    .admin-hero-text { font-family: var(--font-sans); font-size: 0.76rem; color: var(--ink-muted); margin-top: 4px; }
+    .auth-status { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 0.5px solid var(--ink-rule); font-family: var(--font-sans); font-size: 0.74rem; font-weight: 700; color: var(--ink-muted); background: var(--cream-warm); white-space: nowrap; }
     .auth-status.ok  { background: var(--success-bg); color: var(--success-color); border-color: #c4d8c2; }
     .auth-status.err { background: var(--danger-bg);  color: var(--danger-color);  border-color: #f0c8c8; }
 
-    /* PANELS */
-    .panel { border: 0.5px solid var(--ink-rule); border-top: none; background: var(--cream); padding: 24px 28px; }
-    .panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
-    .panel-title { font-family: var(--font-serif); font-size: 1.4rem; font-weight: 300; letter-spacing: -0.02em; color: var(--ink); }
-    .panel-subtitle { font-family: var(--font-sans); font-size: 0.74rem; color: var(--ink-ghost); margin-top: 2px; line-height: 1.4; letter-spacing: 0.02em; }
-    .soft-card { background: var(--cream-warm); border-top: 0.5px solid var(--ink-rule); border-bottom: 0.5px solid var(--ink-rule); padding: 22px 24px; }
+    /* ── STATS STRIP ── */
+    .stats-strip { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; background: var(--ink-rule); border: 0.5px solid var(--ink-rule); border-top: none; }
+    .stat-box { background: var(--cream-warm); padding: 14px 12px; text-align: center; }
+    .stat-box strong { display: block; font-family: var(--font-serif); font-size: 1.6rem; font-weight: 300; color: var(--ink); line-height: 1; }
+    .stat-box span { font-family: var(--font-sans); color: var(--ink-ghost); font-size: 0.6rem; margin-top: 3px; display: block; letter-spacing: 0.08em; text-transform: uppercase; }
 
-    /* STATS */
-    .stats-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; background: var(--ink-rule); border: 0.5px solid var(--ink-rule); margin-bottom: 18px; }
-    .stat-box { background: var(--cream-warm); padding: 18px 14px; text-align: center; }
-    .stat-box strong { display: block; font-family: var(--font-serif); font-size: 2rem; font-weight: 300; color: var(--ink); line-height: 1; }
-    .stat-box span { font-family: var(--font-sans); color: var(--ink-ghost); font-size: 0.66rem; margin-top: 4px; display: block; letter-spacing: 0.08em; text-transform: uppercase; }
+    /* ── MAIN SPLIT LAYOUT ── */
+    .admin-shell { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 180px); border: 0.5px solid var(--ink-rule); border-top: none; }
 
-    .filter-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
-    .filter-row .field-group { flex: 1; min-width: 150px; }
+    /* ── LEFT: VENDOR LIST PANE ── */
+    .vendor-pane { border-right: 0.5px solid var(--ink-rule); background: var(--cream); display: flex; flex-direction: column; max-height: calc(100vh - 180px); }
+    .vendor-pane-controls { padding: 16px; border-bottom: 0.5px solid var(--ink-rule); display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+    .search-input { width: 100%; border: none; border-bottom: 1.5px solid var(--ink-rule); border-radius: 0; background: transparent; padding: 10px 0; font-family: var(--font-sans); font-size: 0.9rem; color: var(--ink); outline: none; transition: border-color 0.2s; }
+    .search-input:focus { border-color: var(--gold); }
+    .filter-sort-row { display: flex; gap: 8px; }
+    .mini-select { flex: 1; border: 0.5px solid var(--ink-rule); border-radius: 0; background: var(--cream); padding: 7px 8px; font-family: var(--font-sans); font-size: 0.72rem; color: var(--ink-mid); outline: none; cursor: pointer; }
+    .mini-select:focus { border-color: var(--gold); }
+    .pane-count { font-family: var(--font-sans); font-size: 0.68rem; color: var(--ink-ghost); letter-spacing: 0.04em; }
+    .refresh-link { background: none; border: none; color: var(--ink-muted); font-family: var(--font-sans); font-size: 0.68rem; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+    .refresh-link:hover { color: var(--ink); }
 
-    /* FIELDS */
+    .vendor-list-scroll { flex: 1; overflow-y: auto; }
+    .vendor-row { padding: 12px 16px; border-bottom: 0.5px solid var(--ink-rule); cursor: pointer; transition: background 0.12s; }
+    .vendor-row:hover { background: var(--cream-warm); }
+    .vendor-row.active { background: var(--cream-deep); border-left: 2px solid var(--ink); padding-left: 14px; }
+    .vendor-row h3 { font-family: var(--font-serif); font-size: 1rem; font-weight: 400; margin-bottom: 3px; color: var(--ink); line-height: 1.2; }
+    .vendor-row-meta { font-family: var(--font-sans); font-size: 0.7rem; color: var(--ink-muted); margin-bottom: 6px; }
+    .vendor-row-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+    .empty-list-msg { padding: 24px 16px; font-family: var(--font-sans); font-size: 0.82rem; color: var(--ink-muted); text-align: center; }
+
+    /* ── PILLS (shared) ── */
+    .status-pill { display: inline-flex; align-items: center; padding: 3px 9px; background: var(--cream-deep); border: 0.5px solid var(--ink-rule); color: var(--ink-mid); font-family: var(--font-sans); font-size: 0.64rem; font-weight: 700; }
+    .pill-paid    { background: #dbeede; color: #2e5934; border-color: #c4dfc8; }
+    .pill-free    { background: #fdeedd; color: #7a4a18; border-color: #f4d9b8; }
+    .pill-hidden  { background: var(--danger-bg); color: var(--danger-color); border-color: #f0c8c8; }
+    .pill-visible { background: var(--success-bg); color: var(--success-color); border-color: #c4d8c2; }
+    .pill-featured { background: var(--cream-deep); color: var(--ink-mid); }
+
+    /* ── RIGHT: EDITOR PANE ── */
+    .editor-pane { background: var(--cream); overflow-y: auto; max-height: calc(100vh - 180px); }
+    .editor-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px; padding: 40px; text-align: center; }
+    .editor-empty-state p { font-family: var(--font-serif); font-style: italic; font-size: 1.1rem; color: var(--ink-muted); }
+
+    .editor-header { padding: 22px 28px 0; }
+    .editor-title { font-family: var(--font-serif); font-size: 1.6rem; font-weight: 300; letter-spacing: -0.02em; color: var(--ink); }
+    .editor-subtitle { font-family: var(--font-sans); font-size: 0.74rem; color: var(--ink-ghost); margin-top: 2px; }
+
+    .info-box { background: var(--cream-warm); border: 0.5px solid var(--ink-rule); padding: 14px 18px; margin: 16px 28px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
+    .info-box p { font-family: var(--font-sans); font-size: 0.74rem; color: var(--ink-muted); line-height: 1.5; }
+    .info-box p strong { color: var(--ink); font-weight: 700; }
+
+    /* ── TABS ── */
+    .editor-tabs { display: flex; gap: 2px; padding: 18px 28px 0; border-bottom: 0.5px solid var(--ink-rule); }
+    .editor-tab { padding: 10px 16px; font-family: var(--font-sans); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-muted); background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; }
+    .editor-tab:hover { color: var(--ink); }
+    .editor-tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 700; }
+    .tab-panel { display: none; padding: 22px 28px 28px; }
+    .tab-panel.active { display: block; animation: fadeUp 0.25s ease both; }
+
+    /* ── FIELDS ── */
     .field-label { display: block; margin-bottom: 5px; font-family: var(--font-sans); font-size: 0.64rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted); }
     .field-input, .field-select, .field-textarea {
       width: 100%; border: none; border-bottom: 1px solid var(--ink-rule); border-radius: 0;
@@ -69,16 +110,17 @@
       transition: border-color 0.2s; outline: none;
     }
     .field-input:focus, .field-select:focus, .field-textarea:focus { border-color: var(--gold); background: rgba(154,122,90,0.03); }
-    .field-textarea { min-height: 90px; resize: vertical; }
+    .field-textarea { min-height: 80px; resize: vertical; }
     .field-select { background: transparent; cursor: pointer; }
-    .field-group { display: flex; flex-direction: column; }
+    .field-group { display: flex; flex-direction: column; margin-bottom: 16px; }
 
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px 24px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 24px; }
 
-    .search-wrap .field-input { font-size: 0.95rem; padding: 13px 0; border-bottom-width: 1.5px; }
+    .section-divider { height: 0.5px; background: var(--ink-rule); margin: 8px 0 20px; }
+    .section-label { font-family: var(--font-sans); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-ghost); margin-bottom: 12px; }
 
-    /* BUTTONS */
+    /* ── BUTTONS ── */
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: none; padding: 10px 20px; font-family: var(--font-sans); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-primary { background: var(--ink); color: var(--cream); }
@@ -89,50 +131,28 @@
     .btn-danger:hover:not(:disabled) { background: #f0d2d2; }
     .btn-sm { padding: 7px 12px; font-size: 0.66rem; }
 
-    /* PILLS */
-    .status-pill { display: inline-flex; align-items: center; padding: 5px 11px; background: var(--cream-deep); border: 0.5px solid var(--ink-rule); color: var(--ink-mid); font-family: var(--font-sans); font-size: 0.72rem; font-weight: 700; }
-    .pill-paid    { background: #dbeede; color: #2e5934; border-color: #c4dfc8; }
-    .pill-free    { background: #fdeedd; color: #7a4a18; border-color: #f4d9b8; }
-    .pill-hidden  { background: var(--danger-bg); color: var(--danger-color); border-color: #f0c8c8; }
-    .pill-visible { background: var(--success-bg); color: var(--success-color); border-color: #c4d8c2; }
-    .pill-featured { background: var(--cream-deep); color: var(--ink-mid); }
+    .action-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; align-items: center; position: sticky; bottom: 0; background: var(--cream); padding: 14px 0 4px; border-top: 0.5px solid var(--ink-rule); }
+    .save-status { font-family: var(--font-serif); font-style: italic; font-size: 0.88rem; color: var(--gold); min-height: 20px; }
+    .save-status.err { color: var(--danger-color); font-style: normal; font-family: var(--font-sans); font-size: 0.78rem; }
 
-    /* VENDOR LIST */
-    .vendor-list { display: grid; gap: 1px; background: var(--ink-rule); margin-top: 18px; border: 0.5px solid var(--ink-rule); }
-    .vendor-row { background: var(--cream); padding: 14px 18px; display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; transition: background 0.15s; }
-    .vendor-row:hover { background: var(--cream-warm); }
-    .vendor-row h3 { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 300; margin-bottom: 2px; color: var(--ink); }
-    .vendor-row p { color: var(--ink-muted); font-size: 0.76rem; margin-bottom: 7px; font-family: var(--font-sans); }
-    .badge-row { display: flex; gap: 6px; flex-wrap: wrap; }
-
-    /* INFO BOX */
-    .info-box { background: var(--cream-warm); border-bottom: 0.5px solid var(--ink-rule); padding: 16px 24px; margin-bottom: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 24px; }
-    .info-box p { font-family: var(--font-sans); font-size: 0.78rem; color: var(--ink-muted); line-height: 1.5; }
-    .info-box p strong { color: var(--ink); font-weight: 700; }
-
-    .section-divider { height: 0.5px; background: var(--ink-rule); margin: 20px 0; }
-
-    /* SAVE STATUS */
-    .save-status { font-family: var(--font-serif); font-style: italic; font-size: 0.9rem; color: var(--gold); min-height: 20px; margin-top: 12px; }
-    .save-status.err { color: var(--danger-color); font-style: normal; font-family: var(--font-sans); font-size: 0.8rem; }
-    .action-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
-
-    /* UPLOAD */
-    .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--ink-rule); border: 0.5px solid var(--ink-rule); margin-top: 18px; }
-    .upload-box { border: none; background: var(--cream); padding: 18px 20px; }
-    .upload-box-title { font-family: var(--font-serif); font-size: 1rem; font-weight: 300; color: var(--ink); margin-bottom: 8px; }
+    /* ── UPLOAD ── */
+    .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--ink-rule); border: 0.5px solid var(--ink-rule); margin-top: 4px; }
+    .upload-box { background: var(--cream); padding: 16px 18px; }
+    .upload-box-title { font-family: var(--font-serif); font-size: 0.95rem; font-weight: 300; color: var(--ink); margin-bottom: 8px; }
     .upload-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-    .upload-status-text { font-family: var(--font-sans); font-size: 0.76rem; color: var(--ink-muted); }
+    .upload-status-text { font-family: var(--font-sans); font-size: 0.74rem; color: var(--ink-muted); }
 
-    /* MEDIA LIST */
-    .media-list { display: grid; gap: 1px; background: var(--ink-rule); margin-top: 14px; border: 0.5px solid var(--ink-rule); }
+    .media-section-label { font-family: var(--font-sans); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-ghost); margin: 22px 0 10px; }
+    .media-upload-box { border: 0.5px solid var(--ink-rule); background: var(--cream); padding: 16px 18px; }
+    .media-list { display: grid; gap: 1px; background: var(--ink-rule); margin-top: 12px; border: 0.5px solid var(--ink-rule); }
     .media-item { background: var(--cream); padding: 12px 16px; display: grid; grid-template-columns: 80px 1fr auto; gap: 14px; align-items: center; }
     .media-thumb { width: 80px; height: 60px; object-fit: cover; display: block; background: var(--cream-deep); }
     video.media-thumb { object-fit: contain; }
-    .media-url { word-break: break-all; color: var(--ink-muted); font-size: 0.74rem; line-height: 1.5; font-family: var(--font-sans); }
+    .media-url { word-break: break-all; color: var(--ink-muted); font-size: 0.72rem; line-height: 1.5; font-family: var(--font-sans); }
     .media-actions { display: flex; flex-direction: column; gap: 5px; }
+    .no-media-msg { color: var(--ink-muted); padding: 12px 0; font-family: var(--font-sans); font-size: 0.8rem; }
 
-    /* ── TYPEAHEAD SEARCH SELECTOR ── */
+    /* ── TYPEAHEAD ── */
     .typeahead-wrap { position: relative; }
     .typeahead-input { width: 100%; border: none; border-bottom: 1px solid var(--ink-rule); background: transparent; padding: 10px 0; font-family: var(--font-sans); font-size: 0.88rem; color: var(--ink); outline: none; transition: border-color 0.2s; }
     .typeahead-input:focus { border-color: var(--gold); }
@@ -144,263 +164,265 @@
     .typeahead-option-group { font-size: 0.66rem; color: var(--ink-ghost); letter-spacing: 0.06em; text-transform: uppercase; }
     .typeahead-no-results { padding: 12px 14px; font-family: var(--font-sans); font-size: 0.82rem; color: var(--ink-ghost); }
 
-    /* SELECTED TAGS */
     .selected-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; min-height: 10px; }
     .selected-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 12px; background: var(--ink); color: var(--cream); font-family: var(--font-sans); font-size: 0.74rem; font-weight: 600; }
     .selected-tag-remove { background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; padding: 0; font-size: 1rem; line-height: 1; display: inline-flex; align-items: center; transition: color 0.15s; }
     .selected-tag-remove:hover { color: var(--cream); }
-    .typeahead-hint { font-family: var(--font-sans); font-size: 0.72rem; color: var(--ink-ghost); margin-top: 6px; line-height: 1.5; }
+    .typeahead-hint { font-family: var(--font-sans); font-size: 0.7rem; color: var(--ink-ghost); margin: -2px 0 8px; line-height: 1.5; }
 
     .hidden { display: none !important; }
 
-    @media (max-width: 860px) { .stats-grid { grid-template-columns: repeat(3,1fr); } .admin-hero-inner { padding: 32px 28px; } }
-    @media (max-width: 640px) {
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-      .grid-2, .grid-3, .upload-grid { grid-template-columns: 1fr; }
-      .vendor-row { grid-template-columns: 1fr; }
+    @media (max-width: 1080px) {
+      .admin-shell { grid-template-columns: 260px 1fr; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 860px) {
+      .admin-shell { grid-template-columns: 1fr; min-height: auto; }
+      .vendor-pane { border-right: none; border-bottom: 0.5px solid var(--ink-rule); max-height: 360px; }
+      .editor-pane { max-height: none; }
+      .stats-strip { grid-template-columns: repeat(3,1fr); }
+      .admin-hero-inner { padding: 24px 20px; }
+      .upload-grid { grid-template-columns: 1fr; }
       .media-item { grid-template-columns: 1fr; }
       .media-thumb { width: 100%; height: 140px; }
       .media-actions { flex-direction: row; flex-wrap: wrap; }
-      .info-box { grid-template-columns: 1fr; }
-      .admin-hero-inner { padding: 26px 18px; }
-      .panel { padding: 18px 16px; }
-      .soft-card { padding: 16px 18px; }
+      .info-box { grid-template-columns: 1fr; margin: 16px 16px 0; }
+      .editor-header { padding: 18px 16px 0; }
+      .editor-tabs { padding: 14px 16px 0; overflow-x: auto; }
+      .tab-panel { padding: 18px 16px 24px; }
     }
   </style>
 </head>
 <body>
-<main class="admin-page">
+<main>
 
   <!-- HERO -->
   <section class="admin-hero">
     <div class="admin-hero-inner">
-      <a href="index.html" aria-label="Homepage">
-        <img src="images/logo1.png" alt="Our Wedding Day Hub" class="admin-hero-logo">
-      </a>
-      <p class="admin-eyebrow">Admin Portal</p>
-      <h1 class="admin-hero-title">Vendor Admin</h1>
-      <p class="admin-hero-text">Search vendors, edit profiles, manage media, categories, locations, payment status and visibility.</p>
+      <div class="admin-hero-left">
+        <a href="index.html" aria-label="Homepage">
+          <img src="images/logo1.png" alt="Our Wedding Day Hub" class="admin-hero-logo">
+        </a>
+        <div>
+          <h1 class="admin-hero-title">Vendor Admin</h1>
+          <p class="admin-hero-text">Search, edit, and manage every vendor account</p>
+        </div>
+      </div>
       <div id="authStatus" class="auth-status">Checking admin access…</div>
     </div>
   </section>
 
   <div id="adminTools" class="hidden">
 
-    <!-- OVERVIEW -->
-    <section class="panel">
-      <div class="panel-header">
-        <div><h2 class="panel-title">Overview</h2><p class="panel-subtitle">Live counts across all vendor accounts</p></div>
-      </div>
-      <div id="statsGrid" class="stats-grid"></div>
-      <div class="filter-row">
-        <div class="field-group">
-          <label class="field-label">Filter</label>
-          <select id="filterInput" class="field-select">
-            <option value="all">All vendors</option>
-            <option value="free-link">Used free link</option>
-            <option value="paid">Paid customers</option>
-            <option value="visible">Visible</option>
-            <option value="hidden">Hidden</option>
-            <option value="featured">Featured</option>
-            <option value="boutique">Boutique access</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Sort</label>
-          <select id="sortInput" class="field-select">
-            <option value="name">Business name</option>
-            <option value="newest">Newest first</option>
-            <option value="subscription">Subscription type</option>
-          </select>
-        </div>
-      </div>
-    </section>
+    <!-- STATS -->
+    <div id="statsGrid" class="stats-strip"></div>
 
-    <!-- FIND VENDOR -->
-    <section class="panel">
-      <div class="panel-header">
-        <div><h2 class="panel-title">Find Vendor</h2><p class="panel-subtitle">Search by name, email, category, ID, invite code or Stripe ID</p></div>
-        <button id="refreshBtn" class="btn btn-ghost">↺ Refresh</button>
-      </div>
-      <div class="search-wrap">
-        <input id="searchInput" class="field-input" type="text" placeholder="Search vendors…">
-      </div>
-      <div id="vendorList" class="vendor-list"></div>
-    </section>
+    <!-- SPLIT SHELL -->
+    <div class="admin-shell">
 
-    <!-- EDITOR -->
-    <section id="editorCard" class="panel hidden">
-      <div class="panel-header">
-        <div><h2 id="editorTitle" class="panel-title">Edit Vendor</h2><p id="vendorIdText" class="panel-subtitle"></p></div>
-      </div>
-
-      <div id="signupInfoBox" class="info-box"></div>
-
-      <div class="soft-card">
-
-        <!-- Core -->
-        <div class="grid-2">
-          <div class="field-group"><label class="field-label">Business name</label><input id="businessNameInput" class="field-input" type="text"></div>
-          <div class="field-group"><label class="field-label">Email</label><input id="emailInput" class="field-input" type="email"></div>
-          <div class="field-group"><label class="field-label">Phone</label><input id="phoneInput" class="field-input" type="text"></div>
-          <div class="field-group"><label class="field-label">Price guide</label><input id="priceInput" class="field-input" type="text"></div>
-          <div class="field-group"><label class="field-label">Cover image URL</label><input id="coverImageInput" class="field-input" type="url" placeholder="https://…"></div>
-          <div class="field-group"><label class="field-label">Profile picture URL</label><input id="profileImageInput" class="field-input" type="url" placeholder="https://…"></div>
-          <div class="field-group"><label class="field-label">Logo URL</label><input id="logoInput" class="field-input" type="url" placeholder="https://…"></div>
-          <div class="field-group"><label class="field-label">Website</label><input id="websiteInput" class="field-input" type="url" placeholder="https://…"></div>
-          <div class="field-group"><label class="field-label">Instagram</label><input id="instagramInput" class="field-input" type="text" placeholder="@handle or full link"></div>
-          <div class="field-group"><label class="field-label">Facebook</label><input id="facebookInput" class="field-input" type="url" placeholder="https://…"></div>
-          <div class="field-group"><label class="field-label">TikTok</label><input id="tiktokInput" class="field-input" type="url" placeholder="https://…"></div>
-          <div class="field-group"><label class="field-label">YouTube</label><input id="youtubeInput" class="field-input" type="url" placeholder="https://…"></div>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <!-- Location text -->
-        <div class="grid-2">
-          <div class="field-group"><label class="field-label">Service Areas Summary</label><input id="serviceAreasInput" class="field-input" type="text" placeholder="Brisbane, Gold Coast, Sunshine Coast"></div>
-          <div class="field-group"><label class="field-label">Display Location</label><input id="displayLocationInput" class="field-input" type="text" placeholder="Brisbane, Queensland"></div>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <!-- CATEGORIES typeahead -->
-        <label class="field-label">Categories</label>
-        <p class="typeahead-hint">Type to search — e.g. "photo", "cake", "flowers". Click to add, click × to remove.</p>
-        <div class="typeahead-wrap" style="margin-top:8px;">
-          <input type="text" id="categorySearch" class="typeahead-input" placeholder="Search categories…" autocomplete="off">
-          <div id="categoryDropdown" class="typeahead-dropdown"></div>
-        </div>
-        <div id="selectedCategories" class="selected-tags"></div>
-
-        <div class="section-divider"></div>
-
-        <!-- COUNTRIES typeahead -->
-        <label class="field-label">Countries</label>
-        <p class="typeahead-hint">Type a country name. Add <strong>Worldwide</strong> for online/virtual vendors who work globally.</p>
-        <div class="typeahead-wrap" style="margin-top:8px;">
-          <input type="text" id="countrySearch" class="typeahead-input" placeholder="Search countries… or type Worldwide" autocomplete="off">
-          <div id="countryDropdown" class="typeahead-dropdown"></div>
-        </div>
-        <div id="selectedCountries" class="selected-tags"></div>
-
-        <div class="section-divider"></div>
-
-        <!-- STATES typeahead -->
-        <label class="field-label">States / Provinces / Territories</label>
-        <p class="typeahead-hint">Type to search states based on selected countries above.</p>
-        <div class="typeahead-wrap" style="margin-top:8px;">
-          <input type="text" id="stateSearch" class="typeahead-input" placeholder="Search states…" autocomplete="off">
-          <div id="stateDropdown" class="typeahead-dropdown"></div>
-        </div>
-        <div id="selectedStates" class="selected-tags"></div>
-
-        <div class="section-divider"></div>
-
-        <!-- REGIONS typeahead -->
-        <label class="field-label">Regions / Cities / Areas</label>
-        <p class="typeahead-hint">Type to search regions based on selected states above.</p>
-        <div class="typeahead-wrap" style="margin-top:8px;">
-          <input type="text" id="regionSearch" class="typeahead-input" placeholder="Search regions…" autocomplete="off">
-          <div id="regionDropdown" class="typeahead-dropdown"></div>
-        </div>
-        <div id="selectedRegions" class="selected-tags"></div>
-
-        <div class="section-divider"></div>
-
-        <!-- Content -->
-        <div class="field-group"><label class="field-label">Short tagline</label><textarea id="taglineInput" class="field-textarea" placeholder="A short intro line for their profile."></textarea></div>
-        <div class="field-group" style="margin-top:18px;"><label class="field-label">Bio / about section</label><textarea id="bioInput" class="field-textarea" placeholder="Write or edit their vendor bio here."></textarea></div>
-        <div class="field-group" style="margin-top:18px;"><label class="field-label">Services / packages</label><textarea id="servicesInput" class="field-textarea" placeholder="Services, packages, inclusions…"></textarea></div>
-
-        <div class="section-divider"></div>
-
-        <!-- Testimonial -->
-        <div class="field-group"><label class="field-label">Testimonial Quote</label><textarea id="testimonialQuoteInput" class="field-textarea" placeholder="Write a client review here..."></textarea></div>
-        <div class="grid-2" style="margin-top:14px;">
-          <div class="field-group"><label class="field-label">Client Name</label><input id="testimonialNameInput" class="field-input" type="text" placeholder="Emily R."></div>
-          <div class="field-group"><label class="field-label">Year</label><input id="testimonialDateInput" class="field-input" type="text" placeholder="2026"></div>
-        </div>
-
-      </div>
-
-      <!-- Visibility / subscription -->
-      <div class="soft-card" style="margin-top:1px;">
-        <div class="grid-2">
-          <div class="field-group"><label class="field-label">Published / visible</label><select id="publishedInput" class="field-select"><option value="true">Visible</option><option value="false">Hidden</option></select></div>
-          <div class="field-group"><label class="field-label">Featured vendor</label><select id="featuredInput" class="field-select"><option value="false">Not featured</option><option value="true">Featured</option></select></div>
-          <div class="field-group"><label class="field-label">Subscription</label><select id="subscriptionInput" class="field-select"><option value="complimentary">Complimentary</option><option value="paid">Paid</option><option value="free">Free</option><option value="trial">Trial</option><option value="cancelled">Cancelled</option><option value="unknown">Unknown</option></select></div>
-          <div class="field-group"><label class="field-label">Payment status</label><select id="paymentStatusInput" class="field-select"><option value="unknown">Unknown</option><option value="active">Active</option><option value="paid">Paid</option><option value="free_link">Free link</option><option value="trialing">Trialing</option><option value="past_due">Past due</option><option value="cancelled">Cancelled</option></select></div>
-          <div class="field-group"><label class="field-label">Boutique access</label><select id="shopAccessInput" class="field-select"><option value="false">No boutique access</option><option value="true">Boutique access enabled</option></select></div>
-          <div class="field-group"><label class="field-label">Founding vendor</label><select id="foundingVendorInput" class="field-select"><option value="false">Not a founding vendor</option><option value="true">Founding vendor</option></select></div>
-        </div>
-      </div>
-
-      <!-- Admin notes -->
-      <div class="soft-card" style="margin-top:1px;">
-        <div class="field-group"><label class="field-label">Admin notes (private)</label><textarea id="adminNotesInput" class="field-textarea" placeholder="Private notes — only visible to admins."></textarea></div>
-      </div>
-
-      <div class="action-bar">
-        <button id="saveDetailsBtn" class="btn btn-primary">Save Details</button>
-      </div>
-      <p id="saveStatus" class="save-status"></p>
-
-      <div class="section-divider"></div>
-
-      <!-- Profile / logo upload -->
-      <div class="upload-grid">
-        <div class="upload-box">
-          <p class="upload-box-title">Upload Profile Picture</p>
-          <input id="profileUploadInput" class="field-input" type="file" accept="image/png,image/jpeg,image/webp">
-          <div class="upload-row">
-            <button id="uploadProfileBtn" class="btn btn-ghost btn-sm" type="button">Upload</button>
-            <button id="removeProfileBtn" class="btn btn-danger btn-sm" type="button">Remove</button>
+      <!-- LEFT: VENDOR LIST -->
+      <aside class="vendor-pane">
+        <div class="vendor-pane-controls">
+          <input id="searchInput" class="search-input" type="text" placeholder="Search vendors…">
+          <div class="filter-sort-row">
+            <select id="filterInput" class="mini-select">
+              <option value="all">All vendors</option>
+              <option value="free-link">Used free link</option>
+              <option value="paid">Paid customers</option>
+              <option value="visible">Visible</option>
+              <option value="hidden">Hidden</option>
+              <option value="featured">Featured</option>
+              <option value="boutique">Boutique access</option>
+            </select>
+            <select id="sortInput" class="mini-select">
+              <option value="name">Name</option>
+              <option value="newest">Newest</option>
+              <option value="subscription">Subscription</option>
+            </select>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span id="paneCount" class="pane-count">0 vendors</span>
+            <button id="refreshBtn" class="refresh-link" type="button">↺ Refresh</button>
           </div>
         </div>
-        <div class="upload-box">
-          <p class="upload-box-title">Upload Logo</p>
-          <input id="logoUploadInput" class="field-input" type="file" accept="image/png,image/jpeg,image/webp">
-          <div class="upload-row">
-            <button id="uploadLogoBtn" class="btn btn-ghost btn-sm" type="button">Upload</button>
-            <button id="removeLogoBtn" class="btn btn-danger btn-sm" type="button">Remove</button>
+        <div id="vendorList" class="vendor-list-scroll"></div>
+      </aside>
+
+      <!-- RIGHT: EDITOR -->
+      <section class="editor-pane">
+
+        <div id="editorEmptyState" class="editor-empty-state">
+          <p>Select a vendor from the list to view and edit their profile.</p>
+        </div>
+
+        <div id="editorContent" class="hidden">
+          <div class="editor-header">
+            <h2 id="editorTitle" class="editor-title">Edit Vendor</h2>
+            <p id="vendorIdText" class="editor-subtitle"></p>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- GALLERY IMAGES -->
-    <section id="galleryCard" class="panel hidden">
-      <div class="panel-header">
-        <div><h2 class="panel-title">Gallery Images</h2><p class="panel-subtitle">Upload images, set a cover, or remove</p></div>
-      </div>
-      <div class="upload-box" style="border:0.5px solid var(--ink-rule);">
-        <p class="upload-box-title">Upload new gallery images</p>
-        <input id="imageUploadInput" class="field-input" type="file" accept="image/png,image/jpeg,image/webp" multiple>
-        <div class="upload-row">
-          <button id="uploadImagesBtn" class="btn btn-primary btn-sm" type="button">Upload Images</button>
-          <span id="uploadStatus" class="upload-status-text"></span>
-        </div>
-      </div>
-      <div id="imageList" class="media-list"></div>
-    </section>
+          <div id="signupInfoBox" class="info-box"></div>
 
-    <!-- GALLERY VIDEOS -->
-    <section id="videoCard" class="panel hidden">
-      <div class="panel-header">
-        <div><h2 class="panel-title">Gallery Videos</h2><p class="panel-subtitle">Upload or remove gallery videos</p></div>
-      </div>
-      <div class="upload-box" style="border:0.5px solid var(--ink-rule);">
-        <p class="upload-box-title">Upload gallery videos</p>
-        <input id="videoUploadInput" class="field-input" type="file" accept="video/mp4,video/webm,video/quicktime,video/mov" multiple>
-        <div class="upload-row">
-          <button id="uploadVideosBtn" class="btn btn-primary btn-sm" type="button">Upload Videos</button>
-          <span id="videoUploadStatus" class="upload-status-text"></span>
-        </div>
-      </div>
-      <div id="videoList" class="media-list"></div>
-    </section>
+          <!-- TABS -->
+          <div class="editor-tabs">
+            <button type="button" class="editor-tab active" data-tab="details">Details</button>
+            <button type="button" class="editor-tab" data-tab="location">Location & Categories</button>
+            <button type="button" class="editor-tab" data-tab="media">Media</button>
+            <button type="button" class="editor-tab" data-tab="status">Status & Payment</button>
+          </div>
 
+          <!-- TAB: DETAILS -->
+          <div class="tab-panel active" data-tab-panel="details">
+            <div class="grid-2">
+              <div class="field-group"><label class="field-label">Business name</label><input id="businessNameInput" class="field-input" type="text"></div>
+              <div class="field-group"><label class="field-label">Email</label><input id="emailInput" class="field-input" type="email"></div>
+              <div class="field-group"><label class="field-label">Phone</label><input id="phoneInput" class="field-input" type="text"></div>
+              <div class="field-group"><label class="field-label">Price guide</label><input id="priceInput" class="field-input" type="text"></div>
+              <div class="field-group"><label class="field-label">Cover image URL</label><input id="coverImageInput" class="field-input" type="url" placeholder="https://…"></div>
+              <div class="field-group"><label class="field-label">Profile picture URL</label><input id="profileImageInput" class="field-input" type="url" placeholder="https://…"></div>
+              <div class="field-group"><label class="field-label">Logo URL</label><input id="logoInput" class="field-input" type="url" placeholder="https://…"></div>
+              <div class="field-group"><label class="field-label">Website</label><input id="websiteInput" class="field-input" type="url" placeholder="https://…"></div>
+              <div class="field-group"><label class="field-label">Instagram</label><input id="instagramInput" class="field-input" type="text" placeholder="@handle or full link"></div>
+              <div class="field-group"><label class="field-label">Facebook</label><input id="facebookInput" class="field-input" type="url" placeholder="https://…"></div>
+              <div class="field-group"><label class="field-label">TikTok</label><input id="tiktokInput" class="field-input" type="url" placeholder="https://…"></div>
+              <div class="field-group"><label class="field-label">YouTube</label><input id="youtubeInput" class="field-input" type="url" placeholder="https://…"></div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="field-group"><label class="field-label">Short tagline</label><textarea id="taglineInput" class="field-textarea" placeholder="A short intro line for their profile."></textarea></div>
+            <div class="field-group"><label class="field-label">Bio / about section</label><textarea id="bioInput" class="field-textarea" placeholder="Write or edit their vendor bio here."></textarea></div>
+            <div class="field-group"><label class="field-label">Services / packages</label><textarea id="servicesInput" class="field-textarea" placeholder="Services, packages, inclusions…"></textarea></div>
+
+            <div class="section-divider"></div>
+
+            <p class="section-label">Testimonial</p>
+            <div class="field-group"><label class="field-label">Testimonial quote</label><textarea id="testimonialQuoteInput" class="field-textarea" placeholder="Write a client review here..."></textarea></div>
+            <div class="grid-2">
+              <div class="field-group"><label class="field-label">Client name</label><input id="testimonialNameInput" class="field-input" type="text" placeholder="Emily R."></div>
+              <div class="field-group"><label class="field-label">Year</label><input id="testimonialDateInput" class="field-input" type="text" placeholder="2026"></div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <p class="section-label">Admin notes (private)</p>
+            <div class="field-group"><textarea id="adminNotesInput" class="field-textarea" placeholder="Private notes — only visible to admins."></textarea></div>
+          </div>
+
+          <!-- TAB: LOCATION & CATEGORIES -->
+          <div class="tab-panel" data-tab-panel="location">
+            <div class="grid-2">
+              <div class="field-group"><label class="field-label">Service areas summary</label><input id="serviceAreasInput" class="field-input" type="text" placeholder="Brisbane, Gold Coast, Sunshine Coast"></div>
+              <div class="field-group"><label class="field-label">Display location</label><input id="displayLocationInput" class="field-input" type="text" placeholder="Brisbane, Queensland"></div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <p class="section-label">Categories</p>
+            <p class="typeahead-hint">Type to search — e.g. "photo", "cake", "flowers". Click to add, click × to remove.</p>
+            <div class="typeahead-wrap">
+              <input type="text" id="categorySearch" class="typeahead-input" placeholder="Search categories…" autocomplete="off">
+              <div id="categoryDropdown" class="typeahead-dropdown"></div>
+            </div>
+            <div id="selectedCategories" class="selected-tags"></div>
+
+            <div class="section-divider"></div>
+
+            <p class="section-label">Countries</p>
+            <p class="typeahead-hint">Type a country name. Add <strong>Worldwide</strong> for online/virtual vendors who work globally.</p>
+            <div class="typeahead-wrap">
+              <input type="text" id="countrySearch" class="typeahead-input" placeholder="Search countries… or type Worldwide" autocomplete="off">
+              <div id="countryDropdown" class="typeahead-dropdown"></div>
+            </div>
+            <div id="selectedCountries" class="selected-tags"></div>
+
+            <div class="section-divider"></div>
+
+            <p class="section-label">States / Provinces / Territories</p>
+            <p class="typeahead-hint">Type to search states based on selected countries above.</p>
+            <div class="typeahead-wrap">
+              <input type="text" id="stateSearch" class="typeahead-input" placeholder="Search states…" autocomplete="off">
+              <div id="stateDropdown" class="typeahead-dropdown"></div>
+            </div>
+            <div id="selectedStates" class="selected-tags"></div>
+
+            <div class="section-divider"></div>
+
+            <p class="section-label">Regions / Cities / Areas</p>
+            <p class="typeahead-hint">Type to search regions based on selected states above.</p>
+            <div class="typeahead-wrap">
+              <input type="text" id="regionSearch" class="typeahead-input" placeholder="Search regions…" autocomplete="off">
+              <div id="regionDropdown" class="typeahead-dropdown"></div>
+            </div>
+            <div id="selectedRegions" class="selected-tags"></div>
+          </div>
+
+          <!-- TAB: MEDIA -->
+          <div class="tab-panel" data-tab-panel="media">
+            <p class="section-label">Profile & logo</p>
+            <div class="upload-grid">
+              <div class="upload-box">
+                <p class="upload-box-title">Profile picture</p>
+                <input id="profileUploadInput" class="field-input" type="file" accept="image/png,image/jpeg,image/webp">
+                <div class="upload-row">
+                  <button id="uploadProfileBtn" class="btn btn-ghost btn-sm" type="button">Upload</button>
+                  <button id="removeProfileBtn" class="btn btn-danger btn-sm" type="button">Remove</button>
+                </div>
+              </div>
+              <div class="upload-box">
+                <p class="upload-box-title">Logo</p>
+                <input id="logoUploadInput" class="field-input" type="file" accept="image/png,image/jpeg,image/webp">
+                <div class="upload-row">
+                  <button id="uploadLogoBtn" class="btn btn-ghost btn-sm" type="button">Upload</button>
+                  <button id="removeLogoBtn" class="btn btn-danger btn-sm" type="button">Remove</button>
+                </div>
+              </div>
+            </div>
+
+            <p class="media-section-label">Gallery images</p>
+            <div class="media-upload-box">
+              <p class="upload-box-title">Upload new gallery images</p>
+              <input id="imageUploadInput" class="field-input" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+              <div class="upload-row">
+                <button id="uploadImagesBtn" class="btn btn-primary btn-sm" type="button">Upload images</button>
+                <span id="uploadStatus" class="upload-status-text"></span>
+              </div>
+            </div>
+            <div id="imageList" class="media-list"></div>
+
+            <p class="media-section-label">Gallery videos</p>
+            <div class="media-upload-box">
+              <p class="upload-box-title">Upload gallery videos</p>
+              <input id="videoUploadInput" class="field-input" type="file" accept="video/mp4,video/webm,video/quicktime,video/mov" multiple>
+              <div class="upload-row">
+                <button id="uploadVideosBtn" class="btn btn-primary btn-sm" type="button">Upload videos</button>
+                <span id="videoUploadStatus" class="upload-status-text"></span>
+              </div>
+            </div>
+            <div id="videoList" class="media-list"></div>
+          </div>
+
+          <!-- TAB: STATUS & PAYMENT -->
+          <div class="tab-panel" data-tab-panel="status">
+            <div class="grid-2">
+              <div class="field-group"><label class="field-label">Published / visible</label><select id="publishedInput" class="field-select"><option value="true">Visible</option><option value="false">Hidden</option></select></div>
+              <div class="field-group"><label class="field-label">Featured vendor</label><select id="featuredInput" class="field-select"><option value="false">Not featured</option><option value="true">Featured</option></select></div>
+              <div class="field-group"><label class="field-label">Subscription</label><select id="subscriptionInput" class="field-select"><option value="complimentary">Complimentary</option><option value="paid">Paid</option><option value="free">Free</option><option value="trial">Trial</option><option value="cancelled">Cancelled</option><option value="unknown">Unknown</option></select></div>
+              <div class="field-group"><label class="field-label">Payment status</label><select id="paymentStatusInput" class="field-select"><option value="unknown">Unknown</option><option value="active">Active</option><option value="paid">Paid</option><option value="free_link">Free link</option><option value="trialing">Trialing</option><option value="past_due">Past due</option><option value="cancelled">Cancelled</option></select></div>
+              <div class="field-group"><label class="field-label">Boutique access</label><select id="shopAccessInput" class="field-select"><option value="false">No boutique access</option><option value="true">Boutique access enabled</option></select></div>
+              <div class="field-group"><label class="field-label">Founding vendor</label><select id="foundingVendorInput" class="field-select"><option value="false">Not a founding vendor</option><option value="true">Founding vendor</option></select></div>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <button id="saveDetailsBtn" class="btn btn-primary">Save Details</button>
+            <p id="saveStatus" class="save-status"></p>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
   </div>
 </main>
 
@@ -422,9 +444,9 @@ const filterInput          = $("filterInput");
 const sortInput            = $("sortInput");
 const refreshBtn           = $("refreshBtn");
 const vendorList           = $("vendorList");
-const editorCard           = $("editorCard");
-const galleryCard          = $("galleryCard");
-const videoCard            = $("videoCard");
+const paneCount             = $("paneCount");
+const editorEmptyState      = $("editorEmptyState");
+const editorContent         = $("editorContent");
 const editorTitle          = $("editorTitle");
 const vendorIdText         = $("vendorIdText");
 const signupInfoBox        = $("signupInfoBox");
@@ -521,7 +543,13 @@ const ALL_CATEGORIES = [
   {group:"Beauty",value:"skin_aesthetics",label:"Skin & Aesthetics"},
   {group:"Beauty",value:"brow_artist",label:"Brow Artist"},
   {group:"Beauty",value:"lash_artist",label:"Lash Artist"},
+  {group:"Beauty",value:"henna_artist",label:"Henna Artist"},
+  {group:"Beauty",value:"mehendi_artist",label:"Mehendi Artist"},
   {group:"Beauty",value:"barber_grooming",label:"Barber / Grooming"},
+  {group:"Beauty",value:"airbrush_artist",label:"Airbrush Artist"},
+  {group:"Beauty",value:"teeth_whitening",label:"Teeth Whitening"},
+  {group:"Beauty",value:"perfume_fragrance",label:"Perfume & Fragrance"},
+  {group:"Beauty",value:"teeth_gems",label:"Bridal Teeth Gems / Tooth Art"},
   {group:"Entertainment",value:"wedding_singer",label:"Singer"},
   {group:"Entertainment",value:"wedding_band",label:"Band"},
   {group:"Entertainment",value:"wedding_dj",label:"DJ"},
@@ -539,6 +567,11 @@ const ALL_CATEGORIES = [
   {group:"Styling & Florals",value:"backdrops_arches",label:"Backdrops & Arches"},
   {group:"Styling & Florals",value:"ceremony_styling",label:"Ceremony Styling"},
   {group:"Styling & Florals",value:"reception_styling",label:"Reception Styling"},
+  {group:"Styling & Florals",value:"confetti_petal_toss",label:"Confetti & Petal Toss"},
+  {group:"Styling & Florals",value:"dried_flower_arrangements",label:"Dried Flower Arrangements"},
+  {group:"Styling & Florals",value:"pressed_flower_arrangements",label:"Pressed Flower Arrangements"},
+  {group:"Styling & Florals",value:"candle_ambience_styling",label:"Candle & Ambience Styling"},
+  {group:"Styling & Florals",value:"ribbon_streamer_styling",label:"Ribbon & Streamer Styling"},
   {group:"Food & Drink",value:"wedding_caterer",label:"Caterer"},
   {group:"Food & Drink",value:"wedding_cake_designer",label:"Cake Designer"},
   {group:"Food & Drink",value:"dessert_bar",label:"Dessert Bar"},
@@ -548,6 +581,11 @@ const ALL_CATEGORIES = [
   {group:"Food & Drink",value:"grazing_tables",label:"Grazing Tables"},
   {group:"Food & Drink",value:"cocktail_catering",label:"Cocktail Catering"},
   {group:"Food & Drink",value:"ice_cream_cart",label:"Ice Cream Cart"},
+  {group:"Food & Drink",value:"donut_wall",label:"Donut Wall"},
+  {group:"Food & Drink",value:"candy_bar",label:"Candy Bar"},
+  {group:"Food & Drink",value:"popcorn_snack_bar",label:"Popcorn / Snack Bar"},
+  {group:"Food & Drink",value:"grazing_boxes",label:"Grazing Boxes"},
+  {group:"Food & Drink",value:"mocktail_bar",label:"Mocktail / Non-Alcoholic Bar"},
   {group:"Venues",value:"wedding_venue",label:"Wedding Venue"},
   {group:"Venues",value:"ceremony_venue",label:"Ceremony Venue"},
   {group:"Venues",value:"reception_venue",label:"Reception Venue"},
@@ -566,6 +604,17 @@ const ALL_CATEGORIES = [
   {group:"Fashion",value:"bridesmaid_dresses",label:"Bridesmaid Dresses"},
   {group:"Fashion",value:"formal_wear",label:"Formal Wear"},
   {group:"Fashion",value:"suit_hire",label:"Suit Hire"},
+  {group:"Fashion",value:"grooms_suits",label:"Groom's Suits"},
+  {group:"Fashion",value:"mens_suits",label:"Men's Suits"},
+  {group:"Fashion",value:"groomsmen_attire",label:"Groomsmen Attire"},
+  {group:"Fashion",value:"father_of_bride_groom_fashion",label:"Father of the Bride / Groom Fashion"},
+  {group:"Fashion",value:"mens_accessories",label:"Men's Accessories & Ties"},
+  {group:"Fashion",value:"flower_girl_dresses",label:"Flower Girl Dresses"},
+  {group:"Fashion",value:"page_boy_attire",label:"Page Boy Attire"},
+  {group:"Fashion",value:"kids_wedding_fashion",label:"Kids Wedding Fashion"},
+  {group:"Fashion",value:"junior_bridesmaid_dresses",label:"Junior Bridesmaid Dresses"},
+  {group:"Fashion",value:"maternity_bridal",label:"Maternity Bridal / Wedding Wear"},
+  {group:"Fashion",value:"ring_bearer_attire",label:"Ring Bearer Attire"},
   {group:"Fashion",value:"custom_designer",label:"Custom Designer"},
   {group:"Fashion",value:"wedding_dress_alterations",label:"Dress Alterations"},
   {group:"Fashion",value:"bridal_accessories",label:"Bridal Accessories"},
@@ -591,6 +640,11 @@ const ALL_CATEGORIES = [
   {group:"Pre-Wedding",value:"group_experience",label:"Group Experience"},
   {group:"Pre-Wedding",value:"party_workshop",label:"Party Workshop"},
   {group:"Pre-Wedding",value:"celebration_planning",label:"Celebration Planning"},
+  {group:"Pre-Wedding",value:"hens_party",label:"Hen's Party"},
+  {group:"Pre-Wedding",value:"bucks_party",label:"Bucks / Bachelor Party"},
+  {group:"Pre-Wedding",value:"rehearsal_dinner",label:"Rehearsal Dinner Planning"},
+  {group:"Pre-Wedding",value:"proposal_planning",label:"Proposal Planning"},
+  {group:"Pre-Wedding",value:"gender_reveal",label:"Gender Reveal"},
   {group:"Ceremony",value:"wedding_celebrant",label:"Celebrant"},
   {group:"Ceremony",value:"ceremony_music",label:"Ceremony Music"},
   {group:"Ceremony",value:"wedding_vows_speech_writer",label:"Vow / Speech Writer"},
@@ -599,6 +653,10 @@ const ALL_CATEGORIES = [
   {group:"Planning",value:"on_the_day_coordinator",label:"On-the-day Coordinator"},
   {group:"Planning",value:"honeymoon_planner",label:"Honeymoon Planner"},
   {group:"Planning",value:"wedding_consultant",label:"Wedding Consultant"},
+  {group:"Planning",value:"budget_planning",label:"Budget Planning"},
+  {group:"Planning",value:"seating_plan_designer",label:"Seating Plan Designer"},
+  {group:"Planning",value:"eco_sustainable_planner",label:"Eco / Sustainable Wedding Planner"},
+  {group:"Planning",value:"destination_wedding_planner",label:"Destination Wedding Planner"},
   {group:"Experiences",value:"live_wedding_painter",label:"Live Painter"},
   {group:"Experiences",value:"photo_booth",label:"Photo Booth"},
   {group:"Experiences",value:"audio_guestbook",label:"Audio Guestbook"},
@@ -606,6 +664,14 @@ const ALL_CATEGORIES = [
   {group:"Experiences",value:"dance_lessons",label:"Dance Lessons"},
   {group:"Experiences",value:"caricature_artist",label:"Caricature Artist"},
   {group:"Experiences",value:"tarot_reader",label:"Tarot Reader"},
+  {group:"Experiences",value:"sparkler_send_off",label:"Sparkler Send-Off"},
+  {group:"Experiences",value:"neon_signs",label:"Neon Signs"},
+  {group:"Experiences",value:"wedding_wishing_well",label:"Wedding Wishing Well"},
+  {group:"Experiences",value:"guest_book_station",label:"Guest Book Signing Station"},
+  {group:"Experiences",value:"sand_ceremony",label:"Sand Ceremony Supplies"},
+  {group:"Experiences",value:"unity_ceremony",label:"Unity Ceremony Supplies"},
+  {group:"Experiences",value:"bubble_send_off",label:"Bubble Send-Off"},
+  {group:"Experiences",value:"wedding_lawn_games",label:"Wedding Games & Lawn Games"},
   {group:"Hire & Rentals",value:"furniture_hire",label:"Furniture Hire"},
   {group:"Hire & Rentals",value:"decor_hire",label:"Decor Hire"},
   {group:"Hire & Rentals",value:"tableware_hire",label:"Tableware Hire"},
@@ -618,6 +684,9 @@ const ALL_CATEGORIES = [
   {group:"Gifts & Favours",value:"wedding_album",label:"Wedding Album"},
   {group:"Gifts & Favours",value:"preserved_flowers",label:"Preserved Flowers"},
   {group:"Gifts & Favours",value:"custom_illustration",label:"Custom Illustration"},
+  {group:"Gifts & Favours",value:"fingerprint_jewellery",label:"Fingerprint Jewellery / Artwork"},
+  {group:"Gifts & Favours",value:"wax_seal_stamps",label:"Wax Seal Stamps"},
+  {group:"Gifts & Favours",value:"wedding_film_analogue",label:"Wedding Film (Super 8 / Analogue)"},
   {group:"Health & Wellness",value:"bridal_fitness",label:"Bridal Fitness"},
   {group:"Health & Wellness",value:"massage_therapist",label:"Massage Therapist"},
   {group:"Health & Wellness",value:"wellness_services",label:"Wellness Services"},
@@ -635,7 +704,7 @@ function createTypeahead({ inputEl, dropdownEl, tagsEl, getOptions, labelKey="la
     if (!lq) return getOptions().slice(0, 30);
     return getOptions().filter(o =>
       o[labelKey].toLowerCase().includes(lq) ||
-      o[groupKey]?.toLowerCase().includes(lq)
+      (o[groupKey] && o[groupKey].toLowerCase().includes(lq))
     ).slice(0, 40);
   }
 
@@ -694,7 +763,7 @@ function createTypeahead({ inputEl, dropdownEl, tagsEl, getOptions, labelKey="la
     const items = dropdownEl.querySelectorAll(".typeahead-option");
     if (e.key === "ArrowDown") { e.preventDefault(); highlighted = Math.min(highlighted+1, items.length-1); items.forEach((el,i)=>el.classList.toggle("highlighted",i===highlighted)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); highlighted = Math.max(highlighted-1, 0); items.forEach((el,i)=>el.classList.toggle("highlighted",i===highlighted)); }
-    else if (e.key === "Enter" && highlighted >= 0) { e.preventDefault(); items[highlighted]?.dispatchEvent(new MouseEvent("mousedown")); }
+    else if (e.key === "Enter" && highlighted >= 0) { e.preventDefault(); if (items[highlighted]) items[highlighted].dispatchEvent(new MouseEvent("mousedown")); }
     else if (e.key === "Escape") dropdownEl.classList.remove("open");
   });
 
@@ -708,7 +777,6 @@ let selectedStates    = new Set();
 let selectedRegions   = new Set();
 let catTypeahead, countryTypeahead, stateTypeahead, regionTypeahead;
 
-// ALL COUNTRIES — flat list including Worldwide
 function getAllCountries() {
   const special = [
     {label:"Worldwide (Online / Virtual)", value:"worldwide", group:"Global"},
@@ -737,7 +805,7 @@ function getAllRegions() {
     if (!cd) return;
     selectedStates.forEach(state => {
       const rs = cd[state];
-      if (!rs?.length) return;
+      if (!rs || !rs.length) return;
       rs.forEach(r => results.push({label:r, value:`${country}__${state}__${r}`, group:`${country} — ${state}`}));
     });
   });
@@ -755,16 +823,16 @@ function initTypeaheads() {
     inputEl: $("countrySearch"), dropdownEl: $("countryDropdown"),
     tagsEl: $("selectedCountries"), selectedSet: selectedCountries,
     getOptions: getAllCountries, labelKey:"label", valueKey:"value", groupKey:"group",
-    onAdd: () => { stateTypeahead?.renderTags(); regionTypeahead?.renderTags(); },
-    onRemove: () => { stateTypeahead?.renderTags(); regionTypeahead?.renderTags(); }
+    onAdd: () => { if (stateTypeahead) stateTypeahead.renderTags(); if (regionTypeahead) regionTypeahead.renderTags(); },
+    onRemove: () => { if (stateTypeahead) stateTypeahead.renderTags(); if (regionTypeahead) regionTypeahead.renderTags(); }
   });
 
   stateTypeahead = createTypeahead({
     inputEl: $("stateSearch"), dropdownEl: $("stateDropdown"),
     tagsEl: $("selectedStates"), selectedSet: selectedStates,
     getOptions: getAllStates, labelKey:"label", valueKey:"value", groupKey:"group",
-    onAdd: () => regionTypeahead?.renderTags(),
-    onRemove: () => regionTypeahead?.renderTags()
+    onAdd: () => { if (regionTypeahead) regionTypeahead.renderTags(); },
+    onRemove: () => { if (regionTypeahead) regionTypeahead.renderTags(); }
   });
 
   regionTypeahead = createTypeahead({
@@ -778,10 +846,8 @@ function loadTypeaheadValues(vendor) {
   selectedCats      = new Set(cleanArr(vendor.categories).concat(vendor.category ? [vendor.category] : []));
   selectedCountries = new Set(cleanArr(vendor.countries).concat(vendor.country ? [vendor.country] : []));
   selectedStates    = new Set(cleanArr(vendor.states));
-  // Regions stored as plain strings, convert to compound key
   const rawRegions  = cleanArr(vendor.regions);
   selectedRegions   = new Set();
-  // Try to find compound key for each saved region
   rawRegions.forEach(r => {
     let found = false;
     selectedCountries.forEach(country => {
@@ -793,9 +859,8 @@ function loadTypeaheadValues(vendor) {
         if (rs.includes(r)) { selectedRegions.add(`${country}__${state}__${r}`); found = true; }
       });
     });
-    if (!found) selectedRegions.add(r); // fallback
+    if (!found) selectedRegions.add(r);
   });
-  // Re-create typeaheads with the new sets
   initTypeaheads();
   catTypeahead.renderTags();
   countryTypeahead.renderTags();
@@ -804,7 +869,6 @@ function loadTypeaheadValues(vendor) {
 }
 
 function getRegionValues() {
-  // Convert compound keys back to plain region names
   const regions = [];
   selectedRegions.forEach(key => {
     const parts = key.split("__");
@@ -839,11 +903,11 @@ function renderStats() {
 
 // ── LOAD & FILTER ─────────────────────────────────────────────────────────
 async function loadVendors() {
-  vendorList.innerHTML="<p style='color:var(--ink-muted);padding:16px 0;font-family:var(--font-sans);font-size:0.84rem;'>Loading vendors…</p>";
+  vendorList.innerHTML="<p class='empty-list-msg'>Loading vendors…</p>";
   const snap=await getDocs(collection(db,"vendors"));
   vendors=snap.docs.map(d=>({id:d.id,...d.data()}));
   renderStats(); renderVendorList();
-  if(selectedVendorId&&vendors.find(v=>v.id===selectedVendorId)) openVendor(selectedVendorId,false);
+  if(selectedVendorId && vendors.find(v=>v.id===selectedVendorId)) openVendor(selectedVendorId,false);
 }
 
 function getFilteredVendors() {
@@ -860,7 +924,7 @@ function getFilteredVendors() {
   if(filter==="featured")  f=f.filter(v=>v.featured===true);
   if(filter==="boutique")  f=f.filter(v=>v.shopAccess===true);
   const s=sortInput.value;
-  if(s==="newest") f.sort((a,b)=>{const tA=a.createdAt?.toDate?a.createdAt.toDate().getTime():new Date(a.createdAt||0).getTime(),tB=b.createdAt?.toDate?b.createdAt.toDate().getTime():new Date(b.createdAt||0).getTime();return tB-tA;});
+  if(s==="newest") f.sort((a,b)=>{const tA=a.createdAt&&a.createdAt.toDate?a.createdAt.toDate().getTime():new Date(a.createdAt||0).getTime(),tB=b.createdAt&&b.createdAt.toDate?b.createdAt.toDate().getTime():new Date(b.createdAt||0).getTime();return tB-tA;});
   else if(s==="subscription") f.sort((a,b)=>getCustomerType(a).localeCompare(getCustomerType(b)));
   else f.sort((a,b)=>String(a.businessName||"").localeCompare(String(b.businessName||"")));
   return f;
@@ -868,37 +932,47 @@ function getFilteredVendors() {
 
 function renderVendorList() {
   const filtered=getFilteredVendors();
-  if(!filtered.length){vendorList.innerHTML="<p style='color:var(--ink-muted);padding:16px 0;font-family:var(--font-sans);font-size:0.84rem;'>No vendors found.</p>";return;}
+  paneCount.textContent = filtered.length + " vendor" + (filtered.length===1?"":"s");
+  if(!filtered.length){vendorList.innerHTML="<p class='empty-list-msg'>No vendors found.</p>";return;}
   vendorList.innerHTML="";
   filtered.forEach(v=>{
     const type=getCustomerType(v);
-    const row=document.createElement("div"); row.className="vendor-row";
-    const info=document.createElement("div");
+    const row=document.createElement("div"); row.className="vendor-row"+(v.id===selectedVendorId?" active":"");
+    row.dataset.vendorId = v.id;
     const h3=document.createElement("h3"); h3.textContent=v.businessName||"Unnamed vendor";
-    const meta=document.createElement("p");
-    const cats=cleanArr(v.categories).slice(0,3).map(c=>pretty(c)).join(", ")||pretty(v.category)||"No category";
-    meta.textContent=`${v.email||"No email"} · ${cats}`;
-    const badges=document.createElement("div"); badges.className="badge-row";
+    const meta=document.createElement("p"); meta.className="vendor-row-meta";
+    const cats=cleanArr(v.categories).slice(0,2).map(c=>pretty(c)).join(", ")||pretty(v.category)||"No category";
+    meta.textContent=cats;
+    const badges=document.createElement("div"); badges.className="vendor-row-badges";
     const tp=document.createElement("span"); tp.className="status-pill"+(type==="Paid customer"?" pill-paid":type==="Free link"?" pill-free":""); tp.textContent=type;
     const isHid=v.published===false||v.profileVisible===false;
     const vp=document.createElement("span"); vp.className="status-pill "+(isHid?"pill-hidden":"pill-visible"); vp.textContent=isHid?"Hidden":"Visible";
     badges.appendChild(tp); badges.appendChild(vp);
     if(v.featured===true){const fp=document.createElement("span");fp.className="status-pill pill-featured";fp.textContent="Featured";badges.appendChild(fp);}
-    const ip=document.createElement("span"); ip.className="status-pill";
-    ip.textContent=`${getCanonicalImages(v).length} img · ${getCanonicalVideos(v).length} vid`;
-    badges.appendChild(ip);
-    info.appendChild(h3); info.appendChild(meta); info.appendChild(badges);
-    const btn=document.createElement("button"); btn.className="btn btn-ghost btn-sm"; btn.type="button"; btn.textContent="Open";
-    btn.addEventListener("click",()=>openVendor(v.id));
-    row.appendChild(info); row.appendChild(btn); vendorList.appendChild(row);
+    row.appendChild(h3); row.appendChild(meta); row.appendChild(badges);
+    row.addEventListener("click",()=>openVendor(v.id));
+    vendorList.appendChild(row);
   });
 }
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────
+function setActiveTab(tabName) {
+  document.querySelectorAll(".editor-tab").forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tabName));
+  document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.toggle("active", panel.dataset.tabPanel === tabName));
+}
+document.querySelectorAll(".editor-tab").forEach(btn => {
+  btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+});
 
 // ── OPEN VENDOR ───────────────────────────────────────────────────────────
 function openVendor(vendorId, shouldScroll=true) {
   selectedVendorId=vendorId;
   selectedVendor=vendors.find(v=>v.id===vendorId);
   if(!selectedVendor) return;
+
+  renderVendorList();
+  hideEl(editorEmptyState); showEl(editorContent);
+  setActiveTab("details");
 
   editorTitle.textContent=selectedVendor.businessName||"Edit Vendor";
   vendorIdText.textContent=`Vendor ID: ${selectedVendorId}`;
@@ -933,9 +1007,10 @@ function openVendor(vendorId, shouldScroll=true) {
   taglineInput.value          = getTag(selectedVendor);
   bioInput.value              = getBio(selectedVendor);
   servicesInput.value         = getSvc(selectedVendor);
-  testimonialQuoteInput.value = selectedVendor.testimonials?.[0]?.quote||"";
-  testimonialNameInput.value  = selectedVendor.testimonials?.[0]?.name||"";
-  testimonialDateInput.value  = selectedVendor.testimonials?.[0]?.date||"";
+  const firstTesti = (selectedVendor.testimonials && selectedVendor.testimonials[0]) || {};
+  testimonialQuoteInput.value = firstTesti.quote||"";
+  testimonialNameInput.value  = firstTesti.name||"";
+  testimonialDateInput.value  = firstTesti.date||"";
   publishedInput.value        = (selectedVendor.published===false||selectedVendor.profileVisible===false)?"false":"true";
   featuredInput.value         = selectedVendor.featured===true?"true":"false";
   subscriptionInput.value     = getSub(selectedVendor);
@@ -950,9 +1025,8 @@ function openVendor(vendorId, shouldScroll=true) {
   imageUploadInput.value=""; videoUploadInput.value=""; profileUploadInput.value=""; logoUploadInput.value="";
   uploadStatus.textContent=""; videoUploadStatus.textContent="";
   renderImages(); renderVideos();
-  showEl(editorCard); showEl(galleryCard); showEl(videoCard);
   setStatus("");
-  if(shouldScroll) window.scrollTo({top:editorCard.offsetTop-20,behavior:"smooth"});
+  if(shouldScroll) editorContent.scrollIntoView({behavior:"smooth", block:"start"});
 }
 
 // ── MEDIA ─────────────────────────────────────────────────────────────────
@@ -981,12 +1055,12 @@ function makeMediaItem(url, index, type) {
 
 function renderImages() {
   const imgs=getCanonicalImages(selectedVendor); imageList.innerHTML="";
-  if(!imgs.length){imageList.innerHTML="<p style='color:var(--ink-muted);padding:12px 0;font-family:var(--font-sans);font-size:0.8rem;'>No gallery images saved.</p>";return;}
+  if(!imgs.length){imageList.innerHTML="<p class='no-media-msg'>No gallery images saved.</p>";return;}
   imgs.forEach((url,i)=>imageList.appendChild(makeMediaItem(url,i,"image")));
 }
 function renderVideos() {
   const vids=getCanonicalVideos(selectedVendor); videoList.innerHTML="";
-  if(!vids.length){videoList.innerHTML="<p style='color:var(--ink-muted);padding:12px 0;font-family:var(--font-sans);font-size:0.8rem;'>No gallery videos saved.</p>";return;}
+  if(!vids.length){videoList.innerHTML="<p class='no-media-msg'>No gallery videos saved.</p>";return;}
   vids.forEach((url,i)=>videoList.appendChild(makeMediaItem(url,i,"video")));
 }
 
@@ -1055,7 +1129,7 @@ uploadVideosBtn.addEventListener("click", async () => {
 });
 
 uploadProfileBtn.addEventListener("click", async () => {
-  const file=profileUploadInput.files?.[0];
+  const file=profileUploadInput.files && profileUploadInput.files[0];
   if(!file||!file.type.startsWith("image/")){setStatus("Choose a valid image file.","err");return;}
   uploadProfileBtn.disabled=true; setStatus("Uploading profile picture…");
   try{const url=await uploadFile(file,"vendor-profile-images");await saveVendorUpdates({profileImageUrl:url,profilePhotoUrl:url});profileUploadInput.value="";setStatus("Profile picture uploaded ♡");}
@@ -1064,7 +1138,7 @@ uploadProfileBtn.addEventListener("click", async () => {
 });
 
 uploadLogoBtn.addEventListener("click", async () => {
-  const file=logoUploadInput.files?.[0];
+  const file=logoUploadInput.files && logoUploadInput.files[0];
   if(!file||!file.type.startsWith("image/")){setStatus("Choose a valid image file.","err");return;}
   uploadLogoBtn.disabled=true; setStatus("Uploading logo…");
   try{const url=await uploadFile(file,"vendor-logos");await saveVendorUpdates({logoUrl:url});logoUploadInput.value="";setStatus("Logo uploaded ♡");}
