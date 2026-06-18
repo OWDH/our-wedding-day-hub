@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Confirmed | Our Wedding Day Hub</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#1A1A16;--ink-mid:#4A4A44;--ink-muted:#8A8A82;--ink-ghost:#C0C0B8;--ink-rule:#DDDDD8;--cream:#FAFAF8;--cream-warm:#F4F0EA;--cream-deep:#EDE8E0;--gold:#9A7A5A;--gold-light:#C4A882;--font-serif:'Cormorant Garamond',Georgia,serif;--font-sans:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{background:var(--cream);font-family:var(--font-sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    .site-topbar{background:var(--cream);border-bottom:1px solid var(--ink-rule);padding:0 36px;display:flex;align-items:center;gap:20px;min-height:64px}
+    .site-topbar-logo{width:44px;height:44px;object-fit:contain}
+    .site-topbar-title h1{font-family:var(--font-serif);font-size:1.05rem;font-weight:400;letter-spacing:.01em;color:var(--ink)}
+
+    .success-wrap{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:40px 24px}
+    .success-card{max-width:480px;text-align:center;animation:fadeUp .6s ease both}
+    .success-icon{font-size:2.6rem;margin-bottom:18px}
+    .success-kicker{font-family:var(--font-sans);font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:14px}
+    .success-title{font-family:var(--font-serif);font-size:clamp(1.8rem,4vw,2.6rem);font-weight:300;letter-spacing:-.03em;color:var(--ink);margin-bottom:14px;line-height:1.1}
+    .success-text{font-family:var(--font-sans);font-size:.92rem;color:var(--ink-muted);line-height:1.8;margin-bottom:28px}
+    .success-btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:13px 28px;border:none;background:var(--ink);color:var(--cream);font-family:var(--font-sans);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:background .2s}
+    .success-btn:hover{background:var(--ink-mid)}
+    .success-error{color:#b04545}
+  </style>
+</head>
+<body>
+
+<header class="site-topbar">
+  <a href="index.html" aria-label="Go to homepage" style="display:inline-flex;align-items:center;">
+    <img src="images/logo1.png" alt="Our Wedding Day Hub" class="site-topbar-logo">
+  </a>
+  <div class="site-topbar-title"><h1>Our Wedding Day Hub</h1></div>
+</header>
+
+<main class="success-wrap">
+  <div class="success-card" id="successCard">
+    <p class="success-kicker">Membership Payment</p>
+    <div class="success-icon" id="successIcon">&#9825;</div>
+    <h1 class="success-title" id="successTitle">Confirming your payment&#8230;</h1>
+    <p class="success-text" id="successText">Just a moment while we activate your vendor dashboard.</p>
+    <a href="dashboard.html" class="success-btn" id="successBtn" style="display:none;">Go to Your Dashboard &#8594;</a>
+  </div>
+</main>
+
+<script type="module">
+  import { auth, db, doc, setDoc, getDoc, onAuthStateChanged } from "./firebase.js";
+
+  const params = new URLSearchParams(window.location.search);
+  const refId = params.get("client_reference_id") || params.get("uid") || "";
+
+  const successIcon = document.getElementById("successIcon");
+  const successTitle = document.getElementById("successTitle");
+  const successText = document.getElementById("successText");
+  const successBtn = document.getElementById("successBtn");
+
+  function showError(message) {
+    successIcon.textContent = "\u26A0";
+    successTitle.textContent = "We couldn't confirm your payment";
+    successTitle.classList.add("success-error");
+    successText.textContent = message;
+    successBtn.textContent = "Go to Your Dashboard \u2192";
+    successBtn.style.display = "inline-flex";
+  }
+
+  async function markVendorPaid(uid) {
+    try {
+      const vendorRef = doc(db, "vendors", uid);
+      const snap = await getDoc(vendorRef);
+      if (!snap.exists()) {
+        showError("We couldn't find your vendor account. Please contact support and we'll sort it out right away.");
+        return;
+      }
+      await setDoc(vendorRef, {
+        paymentStatus: "paid",
+        subscriptionActive: true,
+        paidAt: new Date().toISOString()
+      }, { merge: true });
+
+      successIcon.textContent = "\u2665";
+      successTitle.textContent = "You're all set!";
+      successText.textContent = "Your payment has been confirmed and your vendor dashboard is now unlocked.";
+      successBtn.style.display = "inline-flex";
+    } catch (err) {
+      console.error("Payment confirmation error:", err);
+      showError("Something went wrong confirming your payment. Please contact support and we'll fix this for you.");
+    }
+  }
+
+  onAuthStateChanged(auth, function(user) {
+    // Prefer the logged-in user's own UID (most reliable) — fall back to the
+    // client_reference_id passed back from Stripe if for some reason they're logged out.
+    const uid = (user && user.uid) ? user.uid : refId;
+    if (!uid) {
+      showError("We couldn't identify your account. Please log in and try again, or contact support.");
+      return;
+    }
+    markVendorPaid(uid);
+  });
+</script>
+
+<script type="module" src="nav.js"></script>
+</body>
+</html>
