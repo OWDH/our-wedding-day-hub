@@ -962,6 +962,16 @@ import { LOCATION_DATA } from "./locations.js";
     const userData = userSnap.data();
     const vendorSnap = await getDoc(doc(db, "vendors", uid));
     const vd = vendorSnap.exists() ? vendorSnap.data() : {};
+
+    // ── PAYMENT GATE ──
+    // Block dashboard access unless paid, or a founding/free/complimentary account.
+    const isFoundingOrFree = vd.complimentaryPlan === true || vd.plan === "complimentary" || vd.accessType === "complimentary-invite" || vd.founding === true || vd.foundingVendor === true;
+    const hasPaid = vd.paymentStatus === "paid" || vd.subscriptionActive === true || vd.paidSetupFee === true;
+    if (!isFoundingOrFree && !hasPaid) {
+      window.location.href = "payment-required.html";
+      return;
+    }
+
     currentVendorAccess = { subscriptionActive: vd.subscriptionActive===true, paidSetupFee: vd.paidSetupFee===true, complimentaryPlan: vd.complimentaryPlan===true, plan: vd.plan||"", accessType: vd.accessType||"", membershipTier: vd.membershipTier||"", tier: vd.tier||"", shopAccess: vd.shopAccess===true, accountStatus: vd.accountStatus||"active", profileVisible: vd.profileVisible===true, published: vd.published===true };
     businessName.value = vd.businessName||""; email.value = vd.email||currentUser.email||""; accountName.value = userData.name||""; accountEmail.value = userData.email||currentUser.email||"";
     phone.value = vd.phone||""; instagram.value = vd.instagram||""; website.value = vd.website||""; facebook.value = vd.facebook||""; tiktok.value = vd.tiktok||""; youtube.value = vd.youtube||""; pinterest.value = vd.pinterest||""; linkedin.value = vd.linkedin||""; x.value = vd.x||""; serviceAreas.value = vd.serviceAreas||""; displayLocation.value = vd.displayLocation||""; bookingLink.value = vd.bookingLink||""; availabilityStatus.value = vd.availabilityStatus||""; bookingNotes.value = vd.bookingNotes||""; bio.value = vd.bio||"";
