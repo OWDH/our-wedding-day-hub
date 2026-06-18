@@ -65,8 +65,12 @@
     .vendor-kicker{font-family:var(--font-sans);font-size:.6rem;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:14px}
     .vendor-title{font-family:var(--font-serif);font-size:clamp(2.2rem,3.5vw,3.4rem);font-weight:300;line-height:.92;letter-spacing:-.04em;color:var(--ink);margin-bottom:10px}
     .vendor-category{font-family:var(--font-sans);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:18px}
+    .vendor-price-badge{display:inline-flex;align-items:center;gap:8px;border:.5px solid var(--ink-rule);background:var(--cream-warm);padding:7px 14px;font-family:var(--font-sans);font-size:.78rem;font-weight:600;color:var(--ink-mid);margin-bottom:18px}
     .vendor-about{font-family:var(--font-sans);font-size:.88rem;color:var(--ink-muted);line-height:1.95;white-space:pre-wrap}
     .vendor-section-title{font-family:var(--font-serif);font-size:1.5rem;font-weight:300;letter-spacing:-.02em;color:var(--ink);margin-bottom:22px}
+
+    /* ── SERVICES / PACKAGES ── */
+    .vendor-services{font-family:var(--font-sans);font-size:.88rem;color:var(--ink-mid);line-height:1.9;white-space:pre-wrap}
 
     /* ── TESTIMONIALS ── */
     .testimonial-list{display:grid;gap:0}
@@ -271,7 +275,14 @@
         <p class="vendor-kicker">Trusted Wedding Vendors Worldwide</p>
         <h2 id="businessName" class="vendor-title">Loading...</h2>
         <p id="vendorCategory" class="vendor-category"></p>
+        <p id="vendorPriceBadge" class="vendor-price-badge" style="display:none;"></p>
         <p id="vendorAbout" class="vendor-about"></p>
+      </section>
+
+      <!-- Services / Packages -->
+      <section class="vendor-card" id="servicesCard" style="display:none;">
+        <h2 class="vendor-section-title">Services &amp; Packages</h2>
+        <p id="vendorServices" class="vendor-services"></p>
       </section>
 
       <!-- Testimonials -->
@@ -426,6 +437,9 @@ const vendorId = params.get("id");
 const businessNameEl        = document.getElementById("businessName");
 const vendorCategoryEl      = document.getElementById("vendorCategory");
 const vendorAboutEl         = document.getElementById("vendorAbout");
+const vendorPriceBadgeEl    = document.getElementById("vendorPriceBadge");
+const servicesCard          = document.getElementById("servicesCard");
+const vendorServicesEl      = document.getElementById("vendorServices");
 const mainImage             = document.getElementById("mainImage");
 const mainVideo             = document.getElementById("mainVideo");
 const prevMediaBtn          = document.getElementById("prevMediaBtn");
@@ -761,6 +775,22 @@ async function loadVendor() {
     if (about) vendorAboutEl.textContent = about; else hide(vendorAboutEl);
     setOrHide(vendorCategoryEl, category);
     setOrHide(sidebarCategoryEl, category);
+
+    var priceGuide = vendorData.priceGuide || vendorData.price || "";
+    if (priceGuide.trim()) {
+      vendorPriceBadgeEl.textContent = priceGuide.trim();
+      show(vendorPriceBadgeEl, "inline-flex");
+    } else {
+      hide(vendorPriceBadgeEl);
+    }
+
+    var services = vendorData.services || vendorData.packages || vendorData.inclusions || "";
+    if (services.trim()) {
+      vendorServicesEl.textContent = services.trim();
+      show(servicesCard, "block");
+    } else {
+      hide(servicesCard);
+    }
 
     if (vendorData.availabilityStatus && vendorData.availabilityStatus.trim()) {
       availStatusText.textContent = vendorData.availabilityStatus.trim();
