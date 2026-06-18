@@ -36,7 +36,7 @@
     .admin-hero-inner { padding: 32px 36px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; animation: fadeUp 0.6s ease forwards; }
     .admin-hero-left { display: flex; align-items: center; gap: 16px; }
     .admin-hero-logo { width: 40px; opacity: 0.8; flex-shrink: 0; }
-    .admin-hero-title { font-family: var(--font-serif); font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 300; letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+    .admin-hero-title { font-family: var(--font-sans); font-size: clamp(1.4rem, 3vw, 1.8rem); font-weight: 700; letter-spacing: -0.01em; color: var(--ink); line-height: 1; }
     .admin-hero-text { font-family: var(--font-sans); font-size: 0.76rem; color: var(--ink-muted); margin-top: 4px; }
     .auth-status { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 0.5px solid var(--ink-rule); font-family: var(--font-sans); font-size: 0.74rem; font-weight: 700; color: var(--ink-muted); background: var(--cream-warm); white-space: nowrap; }
     .auth-status.ok  { background: var(--success-bg); color: var(--success-color); border-color: #c4d8c2; }
@@ -45,7 +45,7 @@
     /* ── STATS STRIP ── */
     .stats-strip { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; background: var(--ink-rule); border: 0.5px solid var(--ink-rule); border-top: none; }
     .stat-box { background: var(--cream-warm); padding: 14px 12px; text-align: center; }
-    .stat-box strong { display: block; font-family: var(--font-serif); font-size: 1.6rem; font-weight: 300; color: var(--ink); line-height: 1; }
+    .stat-box strong { display: block; font-family: var(--font-sans); font-size: 1.5rem; font-weight: 700; color: var(--ink); line-height: 1; }
     .stat-box span { font-family: var(--font-sans); color: var(--ink-ghost); font-size: 0.6rem; margin-top: 3px; display: block; letter-spacing: 0.08em; text-transform: uppercase; }
 
     /* ── MAIN SPLIT LAYOUT ── */
@@ -67,7 +67,7 @@
     .vendor-row { padding: 12px 16px; border-bottom: 0.5px solid var(--ink-rule); cursor: pointer; transition: background 0.12s; }
     .vendor-row:hover { background: var(--cream-warm); }
     .vendor-row.active { background: var(--cream-deep); border-left: 2px solid var(--ink); padding-left: 14px; }
-    .vendor-row h3 { font-family: var(--font-serif); font-size: 1rem; font-weight: 400; margin-bottom: 3px; color: var(--ink); line-height: 1.2; }
+    .vendor-row h3 { font-family: var(--font-sans); font-size: 0.92rem; font-weight: 700; margin-bottom: 3px; color: var(--ink); line-height: 1.2; }
     .vendor-row-meta { font-family: var(--font-sans); font-size: 0.7rem; color: var(--ink-muted); margin-bottom: 6px; }
     .vendor-row-badges { display: flex; gap: 5px; flex-wrap: wrap; }
     .empty-list-msg { padding: 24px 16px; font-family: var(--font-sans); font-size: 0.82rem; color: var(--ink-muted); text-align: center; }
@@ -83,7 +83,7 @@
     /* ── RIGHT: EDITOR PANE ── */
     .editor-pane { background: var(--cream); overflow-y: auto; max-height: calc(100vh - 180px); }
     .editor-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px; padding: 40px; text-align: center; }
-    .editor-empty-state p { font-family: var(--font-serif); font-style: italic; font-size: 1.1rem; color: var(--ink-muted); }
+    .editor-empty-state p { font-family: var(--font-sans); font-size: 0.95rem; color: var(--ink-muted); }
 
     .editor-header { padding: 22px 28px 0; }
     .editor-title { font-family: var(--font-sans); font-size: 1.3rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
@@ -135,13 +135,13 @@
     .btn-sm { padding: 7px 12px; font-size: 0.66rem; }
 
     .action-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; align-items: center; position: sticky; bottom: 0; background: var(--cream); padding: 14px 0 4px; border-top: 0.5px solid var(--ink-rule); }
-    .save-status { font-family: var(--font-serif); font-style: italic; font-size: 0.88rem; color: var(--gold); min-height: 20px; }
+    .save-status { font-family: var(--font-sans); font-weight: 600; font-size: 0.82rem; color: var(--gold); min-height: 20px; }
     .save-status.err { color: var(--danger-color); font-style: normal; font-family: var(--font-sans); font-size: 0.78rem; }
 
     /* ── UPLOAD ── */
     .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--ink-rule); border: 0.5px solid var(--ink-rule); margin-top: 4px; }
     .upload-box { background: var(--cream); padding: 16px 18px; }
-    .upload-box-title { font-family: var(--font-serif); font-size: 0.95rem; font-weight: 300; color: var(--ink); margin-bottom: 8px; }
+    .upload-box-title { font-family: var(--font-sans); font-size: 0.84rem; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
     .upload-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
     .upload-status-text { font-family: var(--font-sans); font-size: 0.74rem; color: var(--ink-muted); }
 
@@ -281,9 +281,6 @@
               <div class="field-group"><label class="field-label">Email</label><input id="emailInput" class="field-input" type="email"></div>
               <div class="field-group"><label class="field-label">Phone</label><input id="phoneInput" class="field-input" type="text"></div>
               <div class="field-group"><label class="field-label">Price guide</label><input id="priceInput" class="field-input" type="text"></div>
-              <div class="field-group"><label class="field-label">Cover image URL</label><input id="coverImageInput" class="field-input" type="url" placeholder="https://…"></div>
-              <div class="field-group"><label class="field-label">Profile picture URL</label><input id="profileImageInput" class="field-input" type="url" placeholder="https://…"></div>
-              <div class="field-group"><label class="field-label">Logo URL</label><input id="logoInput" class="field-input" type="url" placeholder="https://…"></div>
               <div class="field-group"><label class="field-label">Website</label><input id="websiteInput" class="field-input" type="url" placeholder="https://…"></div>
               <div class="field-group"><label class="field-label">Instagram</label><input id="instagramInput" class="field-input" type="text" placeholder="@handle or full link"></div>
               <div class="field-group"><label class="field-label">Facebook</label><input id="facebookInput" class="field-input" type="url" placeholder="https://…"></div>
@@ -293,7 +290,6 @@
 
             <div class="section-divider"></div>
 
-            <div class="field-group"><label class="field-label">Short tagline</label><textarea id="taglineInput" class="field-textarea" placeholder="A short intro line for their profile."></textarea></div>
             <div class="field-group"><label class="field-label">Bio / about section</label><textarea id="bioInput" class="field-textarea" placeholder="Write or edit their vendor bio here."></textarea></div>
             <div class="field-group"><label class="field-label">Services / packages</label><textarea id="servicesInput" class="field-textarea" placeholder="Services, packages, inclusions…"></textarea></div>
 
@@ -407,13 +403,25 @@
 
           <!-- TAB: STATUS & PAYMENT -->
           <div class="tab-panel" data-tab-panel="status">
-            <div class="grid-2">
+            <p class="section-label">Access type</p>
+            <p class="typeahead-hint" style="margin-bottom:14px;">Choose one — this sets subscription, payment status, and founding vendor together so you don't have to set each one separately.</p>
+            <div class="field-group">
+              <select id="accessTypeInput" class="field-select" style="font-size:0.95rem; padding:12px 0;">
+                <option value="paid">Paying customer</option>
+                <option value="free_forever">Free forever (founding vendor)</option>
+                <option value="trial">Trial</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <p class="section-label">Visibility & extras</p>
+            <div class="grid-3">
               <div class="field-group"><label class="field-label">Published / visible</label><select id="publishedInput" class="field-select"><option value="true">Visible</option><option value="false">Hidden</option></select></div>
               <div class="field-group"><label class="field-label">Featured vendor</label><select id="featuredInput" class="field-select"><option value="false">Not featured</option><option value="true">Featured</option></select></div>
-              <div class="field-group"><label class="field-label">Subscription</label><select id="subscriptionInput" class="field-select"><option value="complimentary">Complimentary</option><option value="paid">Paid</option><option value="free">Free</option><option value="trial">Trial</option><option value="cancelled">Cancelled</option><option value="unknown">Unknown</option></select></div>
-              <div class="field-group"><label class="field-label">Payment status</label><select id="paymentStatusInput" class="field-select"><option value="unknown">Unknown</option><option value="active">Active</option><option value="paid">Paid</option><option value="free_link">Free link</option><option value="trialing">Trialing</option><option value="past_due">Past due</option><option value="cancelled">Cancelled</option></select></div>
               <div class="field-group"><label class="field-label">Boutique access</label><select id="shopAccessInput" class="field-select"><option value="false">No boutique access</option><option value="true">Boutique access enabled</option></select></div>
-              <div class="field-group"><label class="field-label">Founding vendor</label><select id="foundingVendorInput" class="field-select"><option value="false">Not a founding vendor</option><option value="true">Founding vendor</option></select></div>
             </div>
           </div>
 
@@ -457,9 +465,6 @@ const businessNameInput    = $("businessNameInput");
 const emailInput           = $("emailInput");
 const phoneInput           = $("phoneInput");
 const priceInput           = $("priceInput");
-const coverImageInput      = $("coverImageInput");
-const profileImageInput    = $("profileImageInput");
-const logoInput            = $("logoInput");
 const websiteInput         = $("websiteInput");
 const instagramInput       = $("instagramInput");
 const facebookInput        = $("facebookInput");
@@ -467,7 +472,6 @@ const tiktokInput          = $("tiktokInput");
 const youtubeInput         = $("youtubeInput");
 const serviceAreasInput    = $("serviceAreasInput");
 const displayLocationInput = $("displayLocationInput");
-const taglineInput         = $("taglineInput");
 const bioInput             = $("bioInput");
 const servicesInput        = $("servicesInput");
 const testimonialQuoteInput= $("testimonialQuoteInput");
@@ -475,10 +479,8 @@ const testimonialNameInput = $("testimonialNameInput");
 const testimonialDateInput = $("testimonialDateInput");
 const publishedInput       = $("publishedInput");
 const featuredInput        = $("featuredInput");
-const subscriptionInput    = $("subscriptionInput");
-const paymentStatusInput   = $("paymentStatusInput");
+const accessTypeInput      = $("accessTypeInput");
 const shopAccessInput      = $("shopAccessInput");
-const foundingVendorInput  = $("foundingVendorInput");
 const adminNotesInput      = $("adminNotesInput");
 const saveDetailsBtn       = $("saveDetailsBtn");
 const saveStatus           = $("saveStatus");
@@ -891,6 +893,15 @@ function isPaidCustomer(v) {
 }
 function getCustomerType(v) { return usedFreeLink(v)?"Free link":isPaidCustomer(v)?"Paid customer":"Unknown"; }
 
+function getAccessTypeValue(v) {
+  if (usedFreeLink(v)) return "free_forever";
+  const pay = normalise(getPay(v));
+  if (pay==="trialing"||normalise(getSub(v))==="trial") return "trial";
+  if (pay==="cancelled"||normalise(getSub(v))==="cancelled") return "cancelled";
+  if (isPaidCustomer(v)) return "paid";
+  return "unknown";
+}
+
 // ── STATS ─────────────────────────────────────────────────────────────────
 function renderStats() {
   const t=vendors.length,f=vendors.filter(usedFreeLink).length,p=vendors.filter(isPaidCustomer).length,
@@ -982,21 +993,14 @@ function openVendor(vendorId, shouldScroll=true) {
 
   signupInfoBox.innerHTML=`
     <p><strong>Customer type:</strong> ${getCustomerType(selectedVendor)}</p>
-    <p><strong>Invite code:</strong> ${getInvite(selectedVendor)||"Not saved"}</p>
-    <p><strong>Subscription:</strong> ${pretty(getSub(selectedVendor))}</p>
-    <p><strong>Payment status:</strong> ${pretty(getPay(selectedVendor))}</p>
-    <p><strong>Stripe customer:</strong> ${selectedVendor.stripeCustomerId||"Not saved"}</p>
-    <p><strong>Stripe subscription:</strong> ${selectedVendor.stripeSubscriptionId||"Not saved"}</p>
     <p><strong>Created:</strong> ${formatDate(selectedVendor.createdAt)}</p>
-    <p><strong>Last updated:</strong> ${formatDate(selectedVendor.updatedAt)}</p>`;
+    <p><strong>Last updated:</strong> ${formatDate(selectedVendor.updatedAt)}</p>
+    <p><strong>Invite code:</strong> ${getInvite(selectedVendor)||"Not saved"}</p>`;
 
   businessNameInput.value    = selectedVendor.businessName||"";
   emailInput.value           = selectedVendor.email||"";
   phoneInput.value           = selectedVendor.phone||"";
   priceInput.value           = selectedVendor.priceGuide||selectedVendor.price||"";
-  coverImageInput.value      = selectedVendor.coverImageUrl||"";
-  profileImageInput.value    = selectedVendor.profileImageUrl||selectedVendor.profilePhotoUrl||"";
-  logoInput.value            = selectedVendor.logoUrl||"";
   websiteInput.value         = selectedVendor.website||"";
   instagramInput.value       = selectedVendor.instagram||"";
   facebookInput.value        = selectedVendor.facebook||"";
@@ -1007,7 +1011,6 @@ function openVendor(vendorId, shouldScroll=true) {
 
   loadTypeaheadValues(selectedVendor);
 
-  taglineInput.value          = getTag(selectedVendor);
   bioInput.value              = getBio(selectedVendor);
   servicesInput.value         = getSvc(selectedVendor);
   const firstTesti = (selectedVendor.testimonials && selectedVendor.testimonials[0]) || {};
@@ -1016,14 +1019,9 @@ function openVendor(vendorId, shouldScroll=true) {
   testimonialDateInput.value  = firstTesti.date||"";
   publishedInput.value        = (selectedVendor.published===false||selectedVendor.profileVisible===false)?"false":"true";
   featuredInput.value         = selectedVendor.featured===true?"true":"false";
-  subscriptionInput.value     = getSub(selectedVendor);
-  paymentStatusInput.value    = getPay(selectedVendor);
+  accessTypeInput.value       = getAccessTypeValue(selectedVendor);
   shopAccessInput.value       = selectedVendor.shopAccess===true?"true":"false";
-  foundingVendorInput.value   = selectedVendor.complimentaryPlan===true?"true":"false";
   adminNotesInput.value       = selectedVendor.adminNotes||"";
-
-  if(![...subscriptionInput.options].some(o=>o.value===subscriptionInput.value))  subscriptionInput.value="unknown";
-  if(![...paymentStatusInput.options].some(o=>o.value===paymentStatusInput.value)) paymentStatusInput.value="unknown";
 
   imageUploadInput.value=""; videoUploadInput.value=""; profileUploadInput.value=""; logoUploadInput.value="";
   uploadStatus.textContent=""; videoUploadStatus.textContent="";
@@ -1152,12 +1150,12 @@ uploadLogoBtn.addEventListener("click", async () => {
 removeProfileBtn.addEventListener("click", async () => {
   if(!selectedVendorId) return;
   await saveVendorUpdates({profileImageUrl:"",profilePhotoUrl:""});
-  profileImageInput.value=""; setStatus("Profile picture removed.");
+  setStatus("Profile picture removed.");
 });
 removeLogoBtn.addEventListener("click", async () => {
   if(!selectedVendorId) return;
   await saveVendorUpdates({logoUrl:""});
-  logoInput.value=""; setStatus("Logo removed.");
+  setStatus("Logo removed.");
 });
 
 saveDetailsBtn.addEventListener("click", async () => {
@@ -1167,8 +1165,9 @@ saveDetailsBtn.addEventListener("click", async () => {
   const states    = [...selectedStates];
   const regions   = getRegionValues();
   const existingImages = getCanonicalImages(selectedVendor);
-  const manualCover    = coverImageInput.value.trim();
-  const resolvedCover  = manualCover || existingImages[0] || "";
+  const resolvedCover  = selectedVendor.coverImageUrl || existingImages[0] || "";
+  const existingProfileImg = selectedVendor.profileImageUrl || selectedVendor.profilePhotoUrl || "";
+  const existingLogo       = selectedVendor.logoUrl || "";
 
   await saveVendorUpdates({
     businessName:     businessNameInput.value.trim(),
@@ -1177,9 +1176,9 @@ saveDetailsBtn.addEventListener("click", async () => {
     priceGuide:       priceInput.value.trim(),
     price:            priceInput.value.trim(),
     coverImageUrl:    resolvedCover,
-    profileImageUrl:  profileImageInput.value.trim(),
-    profilePhotoUrl:  profileImageInput.value.trim(),
-    logoUrl:          logoInput.value.trim(),
+    profileImageUrl:  existingProfileImg,
+    profilePhotoUrl:  existingProfileImg,
+    logoUrl:          existingLogo,
     website:          websiteInput.value.trim(),
     instagram:        instagramInput.value.trim(),
     facebook:         facebookInput.value.trim(),
@@ -1190,9 +1189,9 @@ saveDetailsBtn.addEventListener("click", async () => {
     categories:       cats, category: cats[0]||"",
     countries, country: countries[0]||"",
     states, regions,
-    tagline:          taglineInput.value.trim(),
-    shortDescription: taglineInput.value.trim(),
-    intro:            taglineInput.value.trim(),
+    tagline:          getTag(selectedVendor),
+    shortDescription: getTag(selectedVendor),
+    intro:            getTag(selectedVendor),
     bio:              bioInput.value.trim(),
     about:            bioInput.value.trim(),
     description:      bioInput.value.trim(),
@@ -1202,13 +1201,15 @@ saveDetailsBtn.addEventListener("click", async () => {
     testimonials:     [{quote:testimonialQuoteInput.value.trim(),name:testimonialNameInput.value.trim(),date:testimonialDateInput.value.trim()}],
     published:        visible, profileVisible: visible,
     featured:         featuredInput.value==="true",
-    subscriptionType: subscriptionInput.value, subscription: subscriptionInput.value,
-    paymentStatus:    paymentStatusInput.value,
     shopAccess:       shopAccessInput.value==="true",
-    foundingVendor:   foundingVendorInput.value==="true",
-    complimentaryPlan:foundingVendorInput.value==="true",
-    plan:             foundingVendorInput.value==="true"?"complimentary":subscriptionInput.value,
-    accessType:       foundingVendorInput.value==="true"?"complimentary-invite":"",
+    foundingVendor:   accessTypeInput.value==="free_forever",
+    complimentaryPlan:accessTypeInput.value==="free_forever",
+    plan:             accessTypeInput.value==="free_forever"?"complimentary":accessTypeInput.value,
+    subscriptionType: accessTypeInput.value==="free_forever"?"complimentary":accessTypeInput.value,
+    subscription:     accessTypeInput.value==="free_forever"?"complimentary":accessTypeInput.value,
+    subscriptionActive: accessTypeInput.value==="paid",
+    paymentStatus:    accessTypeInput.value==="free_forever"?"free_link":accessTypeInput.value,
+    accessType:       accessTypeInput.value==="free_forever"?"complimentary-invite":"",
     adminNotes:       adminNotesInput.value.trim(),
   });
 });
