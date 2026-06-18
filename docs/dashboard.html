@@ -980,8 +980,24 @@ import { LOCATION_DATA } from "./locations.js";
     businessName.value = vd.businessName||""; email.value = vd.email||currentUser.email||""; accountName.value = userData.name||""; accountEmail.value = userData.email||currentUser.email||"";
     phone.value = vd.phone||""; instagram.value = vd.instagram||""; website.value = vd.website||""; facebook.value = vd.facebook||""; tiktok.value = vd.tiktok||""; youtube.value = vd.youtube||""; pinterest.value = vd.pinterest||""; linkedin.value = vd.linkedin||""; x.value = vd.x||""; serviceAreas.value = vd.serviceAreas||""; displayLocation.value = vd.displayLocation||""; bookingLink.value = vd.bookingLink||""; availabilityStatus.value = vd.availabilityStatus||""; bookingNotes.value = vd.bookingNotes||""; bio.value = vd.bio||""; priceGuide.value = vd.priceGuide||vd.price||""; services.value = vd.services||vd.packages||vd.inclusions||"";
     currentBlockedDates = Array.isArray(vd.blockedDates) ? vd.blockedDates.filter(Boolean) : [];
-    currentProfileImageUrl = vd.profileImageUrl||""; currentLogoUrl = vd.logoUrl||"";
-    currentGalleryImages = Array.isArray(vd.images) ? [...vd.images] : []; currentGalleryVideos = Array.isArray(vd.videos) ? [...vd.videos] : [];
+currentProfileImageUrl = vd.profileImageUrl || vd.profileImage || vd.photoURL || "";
+currentLogoUrl = vd.logoUrl || vd.logo || "";
+
+currentGalleryImages = Array.isArray(vd.images) && vd.images.length
+  ? [...vd.images]
+  : Array.isArray(vd.galleryImages) && vd.galleryImages.length
+    ? [...vd.galleryImages]
+    : Array.isArray(vd.imageUrls) && vd.imageUrls.length
+      ? [...vd.imageUrls]
+      : [];
+
+currentGalleryVideos = Array.isArray(vd.videos) && vd.videos.length
+  ? [...vd.videos]
+  : Array.isArray(vd.galleryVideos) && vd.galleryVideos.length
+    ? [...vd.galleryVideos]
+    : Array.isArray(vd.videoUrls) && vd.videoUrls.length
+      ? [...vd.videoUrls]
+      : [];
     profileLive.checked = vd.profileVisible===true || vd.published===true;
     const showCalEl = document.getElementById('showCalendar');
     if (showCalEl) showCalEl.checked = vd.showCalendar === true;
