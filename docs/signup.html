@@ -39,7 +39,10 @@
     .tier-card.selected .tier-name,.tier-card.selected .tier-price{color:var(--cream)}
     .tier-name{font-family:var(--font-serif);font-size:1.05rem;font-weight:400;color:var(--ink);margin-bottom:2px}
     .tier-price{font-family:var(--font-sans);font-size:.78rem;color:var(--ink-muted)}
+    .tier-price-aud{display:block}
     .tier-card.selected .tier-price{color:rgba(250,250,248,.6)}
+    .tier-price-converted{display:block;font-size:.7rem;margin-top:3px;opacity:.85}
+    .tier-currency-note{font-family:var(--font-sans);font-size:.66rem;color:var(--ink-ghost);margin-top:8px;line-height:1.5}
     .signup-form{display:grid;gap:0;border:.5px solid var(--ink-rule)}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:0}
     .form-field{position:relative;border-bottom:.5px solid var(--ink-rule);background:var(--cream)}
@@ -111,11 +114,12 @@
       <div class="tier-select-wrap vendor-only" id="tierSelectWrap">
         <p class="tier-select-label">Choose your membership tier</p>
         <div class="tier-grid" id="tierGrid">
-          <div class="tier-card selected" data-tier="edit" data-link="https://buy.stripe.com/bJe28reSg8FF4H70XodnW00"><p class="tier-name">Edit</p><p class="tier-price">$54.75 setup<br>+ $9.95/mo</p></div>
-          <div class="tier-card" data-tier="spotlight" data-link="https://buy.stripe.com/eVq6oH39y5ttehH5dEdnW01"><p class="tier-name">Spotlight</p><p class="tier-price">$55.95 setup<br>+ $9.95/mo</p></div>
-          <div class="tier-card" data-tier="feature" data-link="https://buy.stripe.com/7sY4gz6lKcVV5Lb21sdnW02"><p class="tier-name">Feature</p><p class="tier-price">$57.25 setup<br>+ $9.95/mo</p></div>
-          <div class="tier-card" data-tier="icon" data-link="https://buy.stripe.com/cNibJ1eSg099flL49AdnW03"><p class="tier-name">Icon</p><p class="tier-price">$59.95 setup<br>+ $9.95/mo</p></div>
+          <div class="tier-card selected" data-tier="edit" data-monthly="4.75" data-link="https://buy.stripe.com/bJe28reSg8FF4H70XodnW00"><p class="tier-name">Edit</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $4.75/mo AUD</span><span class="tier-price-converted" data-converted-for="edit"></span></p></div>
+          <div class="tier-card" data-tier="spotlight" data-monthly="5.95" data-link="https://buy.stripe.com/eVq6oH39y5ttehH5dEdnW01"><p class="tier-name">Spotlight</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $5.95/mo AUD</span><span class="tier-price-converted" data-converted-for="spotlight"></span></p></div>
+          <div class="tier-card" data-tier="feature" data-monthly="7.25" data-link="https://buy.stripe.com/7sY4gz6lKcVV5Lb21sdnW02"><p class="tier-name">Feature</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $7.25/mo AUD</span><span class="tier-price-converted" data-converted-for="feature"></span></p></div>
+          <div class="tier-card" data-tier="icon" data-monthly="9.95" data-link="https://buy.stripe.com/cNibJ1eSg099flL49AdnW03"><p class="tier-name">Icon</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $9.95/mo AUD</span><span class="tier-price-converted" data-converted-for="icon"></span></p></div>
         </div>
+        <p class="tier-currency-note" id="currencyNote" style="display:none;"></p>
       </div>
       <form id="signupForm" class="signup-form">
         <div class="form-row vendor-only">
@@ -164,6 +168,67 @@
   let currentRole = 'vendor';
   let selectedTier = 'edit';
   let selectedTierLink = 'https://buy.stripe.com/bJe28reSg8FF4H70XodnW00';
+
+  // ── CURRENCY LOCALISATION (display only — all charges happen in AUD) ──
+  // Maps a locale region to the currency people there expect to see.
+  var REGION_CURRENCY = {
+    US:'USD', GB:'GBP', UK:'GBP', NZ:'NZD', CA:'CAD', IE:'EUR', DE:'EUR', FR:'EUR', IT:'EUR', ES:'EUR',
+    NL:'EUR', BE:'EUR', AT:'EUR', PT:'EUR', FI:'EUR', GR:'EUR', SG:'SGD', HK:'HKD', JP:'JPY', IN:'INR',
+    ZA:'ZAR', AE:'AED', PH:'PHP', MY:'MYR', TH:'THB', ID:'IDR', CN:'CNY', KR:'KRW', MX:'MXN', BR:'BRL',
+    CH:'CHF', SE:'SEK', NO:'NOK', DK:'DKK', PL:'PLN', FJ:'FJD'
+  };
+  var CURRENCY_SYMBOL = {
+    USD:'$', GBP:'\u00A3', NZD:'$', CAD:'$', EUR:'\u20AC', SGD:'$', HKD:'$', JPY:'\u00A5', INR:'\u20B9',
+    ZAR:'R', AED:'AED ', PHP:'\u20B1', MYR:'RM', THB:'\u0E3F', IDR:'Rp', CNY:'\u00A5', KRW:'\u20A9',
+    MXN:'$', BRL:'R$', CHF:'CHF ', SEK:'kr', NOK:'kr', DKK:'kr', PLN:'z\u0142', FJD:'$', AUD:'$'
+  };
+
+  function detectLocalCurrency() {
+    try {
+      var locale = (navigator.language || navigator.userLanguage || 'en-AU');
+      var parts = locale.split('-');
+      var region = (parts.length > 1 ? parts[1] : '').toUpperCase();
+      if (region === 'AU') return null; // already AUD, nothing to convert
+      return REGION_CURRENCY[region] || null;
+    } catch (e) { return null; }
+  }
+
+  function formatConverted(amountAud, rate, currencyCode) {
+    var converted = amountAud * rate;
+    var symbol = CURRENCY_SYMBOL[currencyCode] || (currencyCode + ' ');
+    var rounded = converted < 20 ? converted.toFixed(2) : Math.round(converted).toLocaleString();
+    return '\u2248 ' + symbol + rounded + ' ' + currencyCode;
+  }
+
+  async function applyCurrencyConversion() {
+    var localCurrency = detectLocalCurrency();
+    if (!localCurrency) return; // vendor is already in AUD, nothing to show
+
+    try {
+      var res = await fetch('https://api.frankfurter.dev/v2/latest?base=AUD&symbols=' + localCurrency);
+      if (!res.ok) return;
+      var data = await res.json();
+      var rate = data && data.rates && data.rates[localCurrency];
+      if (!rate) return;
+
+      document.querySelectorAll('.tier-card').forEach(function(card) {
+        var monthly = parseFloat(card.dataset.monthly);
+        var convertedEl = card.querySelector('.tier-price-converted');
+        if (!convertedEl || isNaN(monthly)) return;
+        var setupConverted = formatConverted(50, rate, localCurrency);
+        var monthlyConverted = formatConverted(monthly, rate, localCurrency);
+        convertedEl.textContent = setupConverted + ' setup, ' + monthlyConverted + '/mo';
+      });
+
+      var note = document.getElementById('currencyNote');
+      if (note) {
+        note.textContent = 'Prices shown in ' + localCurrency + ' are an approximate guide \u2014 you\u2019ll be charged in AUD (Australian dollars) at checkout.';
+        note.style.display = 'block';
+      }
+    } catch (e) { /* offline or rate-limited — just show AUD pricing, no error shown to user */ }
+  }
+  applyCurrencyConversion();
+
 
   document.querySelectorAll('.tier-card').forEach(function(card) {
     card.addEventListener('click', function() {
