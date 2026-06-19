@@ -9,7 +9,7 @@ import {
   sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import {
-  getFirestore,
+  initializeFirestore,
   doc,
   setDoc,
   getDoc,
@@ -32,7 +32,6 @@ import {
   uploadBytes,
   getDownloadURL
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyDQ2gwuJoe2si8xYfhB6n9mESfSon4zRq8",
   authDomain: "ourweddingdayhub.firebaseapp.com",
@@ -41,12 +40,12 @@ const firebaseConfig = {
   messagingSenderId: "221957124766",
   appId: "1:221957124766:web:83b7ba2351c1ad656e018f"
 };
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
 const storage = getStorage(app);
-
 export {
   app,
   auth,
