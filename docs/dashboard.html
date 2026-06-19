@@ -284,6 +284,22 @@
 </head>
 <body>
 
+<script>
+/* Private diagnostic overlay — only ever appears when the page is opened with ?debug=owdh
+   in the URL. Invisible to normal visitors. Safe to leave in permanently. */
+(function(){
+  if (location.search.indexOf('debug=owdh') === -1) return;
+  function showErr(msg){
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;bottom:0;left:0;right:0;max-height:50vh;overflow:auto;background:#7a1f1f;color:#fff;font:12px/1.5 -apple-system,monospace;padding:12px;z-index:2147483647;white-space:pre-wrap;';
+    d.textContent=String(msg);
+    (document.body||document.documentElement).appendChild(d);
+  }
+  window.addEventListener('error', function(e){ showErr('JS ERROR: '+(e.message||e.error)+(e.filename?(' @ '+String(e.filename).split('/').pop()+':'+e.lineno):'')); });
+  window.addEventListener('unhandledrejection', function(e){ var r=e.reason||{}; showErr('PROMISE REJECTED: '+(r.code?r.code+' — ':'')+(r.message||r)); });
+})();
+</script>
+
 <header class="site-topbar">
   <a href="index.html" class="site-topbar-logo-wrap" aria-label="Go to homepage">
     <img src="images/logo1.png" alt="Our Wedding Day Hub" class="site-topbar-logo">
@@ -1262,8 +1278,8 @@ currentGalleryVideos = Array.isArray(vd.videos) && vd.videos.length
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = "login.html"; return; }
-    await user.reload();
-    currentUser = auth.currentUser;
+    try { await user.reload(); } catch (reloadErr) { console.warn("user.reload() failed; continuing with existing session:", reloadErr); }
+    currentUser = auth.currentUser || user;
 
     // ── Own nav auth state ──
     const _ll = document.getElementById("loginLink");
