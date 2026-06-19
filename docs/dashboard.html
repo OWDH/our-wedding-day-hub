@@ -295,8 +295,9 @@
     d.textContent=String(msg);
     (document.body||document.documentElement).appendChild(d);
   }
-  window.addEventListener('error', function(e){ showErr('JS ERROR: '+(e.message||e.error)+(e.filename?(' @ '+String(e.filename).split('/').pop()+':'+e.lineno):'')); });
-  window.addEventListener('unhandledrejection', function(e){ var r=e.reason||{}; showErr('PROMISE REJECTED: '+(r.code?r.code+' — ':'')+(r.message||r)); });
+  function stackOf(err){ try { return (err && err.stack) ? '\n\n--- where it happened ---\n'+String(err.stack) : ''; } catch(_) { return ''; } }
+  window.addEventListener('error', function(e){ showErr('JS ERROR: '+(e.message||e.error)+(e.filename?(' @ '+String(e.filename).split('/').pop()+':'+e.lineno):'')+stackOf(e.error)); });
+  window.addEventListener('unhandledrejection', function(e){ var r=e.reason||{}; showErr('PROMISE REJECTED: '+(r.code?r.code+' — ':'')+(r.message||r)+stackOf(r)); });
 })();
 </script>
 
