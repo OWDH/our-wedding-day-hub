@@ -270,28 +270,31 @@ const isFreeInvite = inviteCode === 'foundingvendor2026';
         userData.businessName = document.getElementById('businessName').value.trim();
         userData.primaryCategory = document.getElementById('primaryCategory').value;
         await setDoc(doc(db, 'users', uid), userData);
-        await setDoc(doc(db, 'vendors', uid), {
-          ...userData,
-          approved: false,
-          visible: false,
-          profileVisible: false,
-          published: false,
-          membershipTier: selectedTier,
-          paymentStatus: 'pending',
-          subscriptionActive: false
-        });
+await setDoc(doc(db, 'vendors', uid), {
+  ...userData,
+  approved: false,
+  visible: false,
+  profileVisible: false,
+  published: false,
+  membershipTier: selectedTier,
+  paymentStatus: isFreeInvite ? 'free_invite' : 'pending',
+  subscriptionActive: isFreeInvite ? true : false,
+  inviteCode: inviteCode || null
+});
+
 if (isFreeInvite) {
   msg.textContent = 'Account created! Redirecting...';
   setTimeout(() => {
     window.location.href = 'dashboard.html';
   }, 1000);
 } else {
-  msg.textContent = 'Account created! Redirecting you to payment...';
+  msg.textContent = 'Account created! Redirecting you to payment…';
   const paymentUrl = selectedTierLink + '?client_reference_id=' + uid + '&prefilled_email=' + encodeURIComponent(email);
   setTimeout(() => {
     window.location.href = paymentUrl;
   }, 1200);
 }
+
       } else {
         userData.partnerOne = document.getElementById('partnerOne').value.trim();
         userData.partnerTwo = document.getElementById('partnerTwo').value.trim();
