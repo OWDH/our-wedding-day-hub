@@ -168,6 +168,9 @@
   let currentRole = 'vendor';
   let selectedTier = 'edit';
   let selectedTierLink = 'https://buy.stripe.com/bJe28reSg8FF4H70XodnW00';
+  const params = new URLSearchParams(window.location.search);
+const inviteCode = params.get('invite');
+const isFreeInvite = inviteCode === 'foundingvendor2026';
 
   // ── CURRENCY LOCALISATION (display only — all charges happen in AUD) ──
   // Maps a locale region to the currency people there expect to see.
@@ -277,9 +280,18 @@
           paymentStatus: 'pending',
           subscriptionActive: false
         });
-        msg.textContent = 'Account created! Redirecting you to payment\u2026';
-        const paymentUrl = selectedTierLink + '?client_reference_id=' + uid + '&prefilled_email=' + encodeURIComponent(email);
-        setTimeout(() => { window.location.href = paymentUrl; }, 1200);
+if (isFreeInvite) {
+  msg.textContent = 'Account created! Redirecting...';
+  setTimeout(() => {
+    window.location.href = 'dashboard.html';
+  }, 1000);
+} else {
+  msg.textContent = 'Account created! Redirecting you to payment...';
+  const paymentUrl = selectedTierLink + '?client_reference_id=' + uid + '&prefilled_email=' + encodeURIComponent(email);
+  setTimeout(() => {
+    window.location.href = paymentUrl;
+  }, 1200);
+}
       } else {
         userData.partnerOne = document.getElementById('partnerOne').value.trim();
         userData.partnerTwo = document.getElementById('partnerTwo').value.trim();
