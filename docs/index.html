@@ -326,7 +326,7 @@
     if(!heroBg)return;
     const shuffled=heroImages.slice().sort(function(){return Math.random()-.5;});let ci=0;
     heroBg.style.backgroundImage="url("+shuffled[0]+")";
-    shuffled.forEach(function(src){const i=new Image();i.src=src;});
+    
     setInterval(function(){ci=(ci+1)%shuffled.length;heroBg.style.transition="opacity 1s ease";heroBg.style.opacity="0";setTimeout(function(){heroBg.style.backgroundImage="url("+shuffled[ci]+")";heroBg.style.opacity="1";},1000);},5000);
   }
 
