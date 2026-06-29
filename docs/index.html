@@ -325,7 +325,7 @@
     const heroImages=["images/22.png","images/001.png","images/20.png","images/24.png","images/14.png","images/28.png","images/5.png","images/11.png","images/18.png","images/16.png","images/12.png","images/10.png"];
     if(!heroBg)return;
     const shuffled=heroImages.slice().sort(function(){return Math.random()-.5;});let ci=0;
-    heroBg.style.backgroundImage="url("+shuffled[0]+")";
+    heroBg.style.backgroundImage="url(images/22.png)";
     
     setInterval(function(){ci=(ci+1)%shuffled.length;heroBg.style.transition="opacity 1s ease";heroBg.style.opacity="0";setTimeout(function(){heroBg.style.backgroundImage="url("+shuffled[ci]+")";heroBg.style.opacity="1";},1000);},5000);
   }
