@@ -312,7 +312,7 @@
 
   async function loadVendors() {
     try {
-      const snap=await getDocs(query(collection(db,"vendors"),limit(9)));const lv=[];
+      const snap=await getDocs(collection(db,"vendors"));const lv=[];
       snap.forEach(function(d){const v=d.data();if(v&&v.businessName&&v.profileVisible!==false&&v.published!==false)lv.push(Object.assign({},v,{docId:d.id}));});
       allVendors=sortVendors(lv).sort(function(){return Math.random()-.5;});filteredVendors=allVendors.slice();currentSlide=0;renderVendors(filteredVendors);
     } catch(err){console.error("Vendor load error:",err);emptyMessage.style.display="block";emptyMessage.textContent="There was a problem loading vendors.";prevVendorsBtn.style.display="none";nextVendorsBtn.style.display="none";}
