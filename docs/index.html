@@ -260,6 +260,7 @@
   let allVendors      = [];
   let filteredVendors = [];
   let currentSlide    = 0;
+  let totalVendorCount = 0;
 
   function cleanArray(arr) { return Array.isArray(arr) ? arr.filter(Boolean) : []; }
   function formatText(value) { if (!value) return ""; return String(value).replace(/_/g," ").replace(/-/g," ").replace(/\s+/g," ").trim().replace(/\b\w/g,char=>char.toUpperCase()); }
@@ -281,7 +282,7 @@
   function getTotalSlides(vendors) { return Math.max(1,Math.ceil(vendors.length/getCardsPerSlide())); }
   function updateArrowState(vendors) { const ts=getTotalSlides(vendors),dc=vendors.length<=getCardsPerSlide(); prevVendorsBtn.disabled=dc||currentSlide<=0; nextVendorsBtn.disabled=dc||currentSlide>=ts-1; }
   function renderDots(vendors) { vendorsDots.innerHTML=""; const ts=getTotalSlides(vendors); if(vendors.length<=getCardsPerSlide())return; for(let i=0;i<ts;i++){const d=document.createElement("button");d.type="button";d.className="vendors-dot"+(i===currentSlide?" active":"");d.setAttribute("aria-label","Go to vendor slide "+(i+1));d.addEventListener("click",function(){currentSlide=i;renderVendors(filteredVendors)});vendorsDots.appendChild(d);} }
-function updateMeta(vendors) { const ts=getTotalSlides(vendors); if(!vendors.length){vendorsSlideStatus.textContent="";vendorsTotalCount.textContent="";return;} vendorsSlideStatus.textContent=vendors.length<=getCardsPerSlide()?"A rotating selection from our directory":"Page "+(currentSlide+1)+" of "+ts; vendorsTotalCount.innerHTML='<a href="categories.html" style="color:inherit;text-decoration:underline;">Browse all vendors →</a>';
+function updateMeta(vendors) { const ts=getTotalSlides(vendors); if(!vendors.length){vendorsSlideStatus.textContent="";vendorsTotalCount.textContent="";return;} vendorsSlideStatus.textContent=vendors.length<=getCardsPerSlide()?"A rotating selection from our directory":"Page "+(currentSlide+1)+" of "+ts;vendorsTotalCount.innerHTML='Showing '+Math.min(9,totalVendorCount)+' of '+totalVendorCount+' vendors • <a href="categories.html" style="color:inherit;text-decoration:underline;">Browse all →</a>';
   function renderVendors(vendors) {
     vendorsGrid.innerHTML="";
     if(!vendors.length){emptyMessage.style.display="block";prevVendorsBtn.style.display="none";nextVendorsBtn.style.display="none";vendorsDots.innerHTML="";vendorsSlideStatus.textContent="";vendorsTotalCount.textContent="";return;}
@@ -309,13 +310,14 @@ function updateMeta(vendors) { const ts=getTotalSlides(vendors); if(!vendors.len
     } catch(err){console.error("Testimonials error:",err);}
   }
 
-  async function loadVendors() {
-    try {
-      const snap=await getDocs(collection(db,"vendors"));const lv=[];
-      snap.forEach(function(d){const v=d.data();if(v&&v.businessName&&v.profileVisible!==false&&v.published!==false)lv.push(Object.assign({},v,{docId:d.id}));});
-     allVendors=sortVendors(lv).sort(function(){return Math.random()-.5;}).slice(0,9);filteredVendors=allVendors.slice();currentSlide=0;renderVendors(filteredVendors);
-    } catch(err){console.error("Vendor load error:",err);emptyMessage.style.display="block";emptyMessage.textContent="There was a problem loading vendors.";prevVendorsBtn.style.display="none";nextVendorsBtn.style.display="none";}
-  }
+async function loadVendors() {
+  try {
+    const snap=await getDocs(collection(db,"vendors"));const lv=[];
+    snap.forEach(function(d){const v=d.data();if(v&&v.businessName&&v.profileVisible!==false&&v.published!==false)lv.push(Object.assign({},v,{docId:d.id}));});
+    totalVendorCount=lv.length;
+    allVendors=sortVendors(lv).sort(function(){return Math.random()-.5;}).slice(0,9);filteredVendors=allVendors.slice();currentSlide=0;renderVendors(filteredVendors);
+  } catch(err){console.error("Vendor load error:",err);emptyMessage.style.display="block";emptyMessage.textContent="There was a problem loading vendors.";prevVendorsBtn.style.display="none";nextVendorsBtn.style.display="none";}
+}
 
   function goToSearchResults() { const t=searchInput.value.trim(); window.location.href=t?"categories.html?search="+encodeURIComponent(t):"categories.html"; }
 
