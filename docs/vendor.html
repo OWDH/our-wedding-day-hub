@@ -255,7 +255,7 @@
       .msg-modal-body{padding:22px 22px 28px}
       .footer-content{padding:28px 20px 24px}
       .vendor-layout{display:flex;flex-direction:column}
-      .sidebar-card{order:-1;width:100%;border-left:none;border-bottom:.5px solid var(--ink-rule)}
+      .sidebar-card{width:100%;border-left:none;border-bottom:.5px solid var(--ink-rule)}
       .vendor-left{width:100%}
       .cal-day{min-height:36px;font-size:.74rem}
       .cal-weekday{font-size:.52rem}
@@ -299,6 +299,15 @@
         </div>
         <div id="galleryDots" class="vendor-gallery-dots"></div>
       </section>
+           <!-- Testimonials -->
+
+      <section class="vendor-card" id="testimonialsCard" style="display:none;">
+
+        <h2 class="vendor-section-title">Kind Words</h2>
+
+        <div id="vendorTestimonials"></div>
+
+      </section>
 
       <!-- Header -->
       <section class="vendor-card vendor-header-card">
@@ -315,24 +324,6 @@
         <p id="vendorServices" class="vendor-services"></p>
       </section>
 
-      <!-- Testimonials -->
-      <section class="vendor-card" id="testimonialsCard" style="display:none;">
-        <h2 class="vendor-section-title">Kind Words</h2>
-        <div id="vendorTestimonials"></div>
-      </section>
-
-      <!-- Public testimonial submission form -->
-      <section class="testi-submit-section vendor-card" id="testiSubmitSection">
-        <h2 class="testi-submit-title">Leave a Kind Word</h2>
-        <p class="testi-submit-sub">Worked with this vendor? Share your experience — your review will appear on their profile once approved.</p>
-        <div class="testi-submit-form" id="testiSubmitForm">
-          <div class="testi-submit-field"><textarea id="testiPublicQuote" placeholder=" " required></textarea><label for="testiPublicQuote">Your testimonial</label></div>
-          <div class="testi-submit-field"><input type="text" id="testiPublicName" placeholder=" " required><label for="testiPublicName">Your name (e.g. Emma &amp; James)</label></div>
-          <div class="testi-submit-field"><input type="text" id="testiPublicDate" placeholder=" "><label for="testiPublicDate">Wedding / event date (optional)</label></div>
-        </div>
-        <button type="button" class="testi-submit-btn" id="testiPublicSubmitBtn">Submit Testimonial &#8594;</button>
-        <p class="testi-submit-msg" id="testiPublicMsg"></p>
-      </section>
 
       <!-- Availability Calendar -->
       <div class="vendor-card" id="calendarCard" style="display:none;">
@@ -368,6 +359,19 @@
         </div>
       </div>
 
+      
+      <!-- Public testimonial submission form -->
+      <section class="testi-submit-section vendor-card" id="testiSubmitSection">
+        <h2 class="testi-submit-title">Leave a Kind Word</h2>
+        <p class="testi-submit-sub">Worked with this vendor? Share your experience — your review will appear on their profile once approved.</p>
+        <div class="testi-submit-form" id="testiSubmitForm">
+          <div class="testi-submit-field"><textarea id="testiPublicQuote" placeholder=" " required></textarea><label for="testiPublicQuote">Your testimonial</label></div>
+          <div class="testi-submit-field"><input type="text" id="testiPublicName" placeholder=" " required><label for="testiPublicName">Your name (e.g. Emma &amp; James)</label></div>
+          <div class="testi-submit-field"><input type="text" id="testiPublicDate" placeholder=" "><label for="testiPublicDate">Wedding / event date (optional)</label></div>
+        </div>
+        <button type="button" class="testi-submit-btn" id="testiPublicSubmitBtn">Submit Testimonial &#8594;</button>
+        <p class="testi-submit-msg" id="testiPublicMsg"></p>
+      </section>
     </section>
 
     <!-- Sidebar -->
