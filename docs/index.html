@@ -328,8 +328,9 @@ async function loadVendors() {
     if(!heroBg)return;
     const shuffled=heroImages.slice().sort(function(){return Math.random()-.5;});let ci=0;
     heroBg.style.backgroundImage="url(images/22.png)";
+    let nextImg=new Image();nextImg.src=shuffled[1];
     
-    setInterval(function(){ci=(ci+1)%shuffled.length;heroBg.style.transition="opacity 1s ease";heroBg.style.opacity="0";setTimeout(function(){heroBg.style.backgroundImage="url("+shuffled[ci]+")";heroBg.style.opacity="1";},1000);},5000);
+    setInterval(function(){ci=(ci+1)%shuffled.length;heroBg.style.transition="opacity 1s ease";heroBg.style.opacity="0";setTimeout(function(){heroBg.style.backgroundImage="url("+shuffled[ci]+")";heroBg.style.opacity="1";nextImg=new Image();nextImg.src=shuffled[(ci+1)%shuffled.length];},1000);},5000);
   }
 
   prevVendorsBtn.addEventListener("click",function(){if(currentSlide>0){currentSlide--;renderVendors(filteredVendors);}});
