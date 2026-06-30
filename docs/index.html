@@ -283,6 +283,7 @@
   function updateArrowState(vendors) { const ts=getTotalSlides(vendors),dc=vendors.length<=getCardsPerSlide(); prevVendorsBtn.disabled=dc||currentSlide<=0; nextVendorsBtn.disabled=dc||currentSlide>=ts-1; }
   function renderDots(vendors) { vendorsDots.innerHTML=""; const ts=getTotalSlides(vendors); if(vendors.length<=getCardsPerSlide())return; for(let i=0;i<ts;i++){const d=document.createElement("button");d.type="button";d.className="vendors-dot"+(i===currentSlide?" active":"");d.setAttribute("aria-label","Go to vendor slide "+(i+1));d.addEventListener("click",function(){currentSlide=i;renderVendors(filteredVendors)});vendorsDots.appendChild(d);} }
 function updateMeta(vendors) { const ts=getTotalSlides(vendors); if(!vendors.length){vendorsSlideStatus.textContent="";vendorsTotalCount.textContent="";return;} vendorsSlideStatus.textContent=vendors.length<=getCardsPerSlide()?"A rotating selection from our directory":"Page "+(currentSlide+1)+" of "+ts;vendorsTotalCount.innerHTML='Showing '+Math.min(9,totalVendorCount)+' of '+totalVendorCount+' vendors • <a href="categories.html" style="color:inherit;text-decoration:underline;">Browse all →</a>';
+  }
   function renderVendors(vendors) {
     vendorsGrid.innerHTML="";
     if(!vendors.length){emptyMessage.style.display="block";prevVendorsBtn.style.display="none";nextVendorsBtn.style.display="none";vendorsDots.innerHTML="";vendorsSlideStatus.textContent="";vendorsTotalCount.textContent="";return;}
