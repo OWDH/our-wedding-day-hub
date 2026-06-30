@@ -41,6 +41,32 @@
 
     /* ── GALLERY ── */
     .vendor-gallery-card{padding:0;overflow:hidden;border-bottom:.5px solid var(--ink-rule)}
+    .portfolio-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:18px 22px;
+  background:var(--cream);
+  border-bottom:.5px solid var(--ink-rule);
+}
+
+.portfolio-header span{
+  font-family:var(--font-sans);
+  font-size:.68rem;
+  font-weight:700;
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  color:var(--ink);
+}
+
+.portfolio-header::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:var(--gold-light);
+  opacity:.8;
+}
     .vendor-gallery-stage{position:relative;overflow:hidden;background:var(--cream-deep);cursor:grab;touch-action:pan-y;user-select:none}
     .vendor-gallery-stage:active{cursor:grabbing}
     .vendor-gallery-media{width:100%;height:520px;display:block;background:var(--cream-deep)}
@@ -221,7 +247,7 @@
       .vendor-page{padding:0 0 40px}
       .vendor-card{padding:28px 22px}
       .vendor-header-card{padding:32px 22px 28px}
-      .vendor-gallery-media{height:280px}
+      .vendor-gallery-media{height:460px}
       .vendor-gallery-arrow{width:38px;height:38px;font-size:20px}
       .profile-pic{width:100px;height:100px}
       .msg-modal{max-width:100%}
@@ -258,7 +284,11 @@
 
       <!-- Gallery -->
       <section class="vendor-card vendor-gallery-card">
-        <div class="vendor-gallery-stage">
+        <div class="portfolio-header">
+    <span>Portfolio</span>
+</div>
+
+<div class="vendor-gallery-stage">
           <button type="button" id="prevMediaBtn" class="vendor-gallery-arrow left" aria-label="Previous">&#8249;</button>
           <div class="vendor-gallery-media">
             <img id="mainImage" src="images/header4.png" alt="Vendor gallery image" loading="eager" fetchpriority="high">
