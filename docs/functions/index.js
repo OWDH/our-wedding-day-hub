@@ -265,7 +265,7 @@ app.post("/create-checkout-session", async (req, res) => {
         { price: PRICE_IDS[plan], quantity: 1 }
       ],
       success_url:
-        "https://ourweddingdayhub.com/signup-success.html?paid=true&session_id={CHECKOUT_SESSION_ID}",
+        "https://ourweddingdayhub.com/payment-success.html?paid=true&session_id={CHECKOUT_SESSION_ID}",
       cancel_url: "https://ourweddingdayhub.com/signup.html",
       allow_promotion_codes: true
     });
