@@ -82,8 +82,8 @@
 
       successIcon.textContent = "\u2665";
       successTitle.textContent = "You're all set!";
-      successText.textContent = "Your payment has been confirmed and your vendor dashboard is now unlocked.";
-      successBtn.style.display = "inline-flex";
+      successText.textContent = "Your payment has been confirmed. Redirecting you to your dashboard…";
+      setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
     } catch (err) {
       console.error("Payment confirmation error:", err);
       showError("Something went wrong confirming your payment. Please contact support and we'll fix this for you.");
