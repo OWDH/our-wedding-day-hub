@@ -270,19 +270,20 @@ const isFreeInvite = inviteCode === 'foundingvendor2026';
         userData.businessName = document.getElementById('businessName').value.trim();
         userData.primaryCategory = document.getElementById('primaryCategory').value;
         await setDoc(doc(db, 'users', uid), userData);
-await setDoc(doc(db, 'vendors', uid), {
+
+
+if (isFreeInvite) {
+  await setDoc(doc(db, 'vendors', uid), {
   ...userData,
   approved: false,
   visible: false,
   profileVisible: false,
   published: false,
-  membershipTier: finalTier,
-  paymentStatus: isFreeInvite ? 'free_invite' : 'pending',
-  subscriptionActive: isFreeInvite ? true : false,
+  membershipTier: selectedTier,
+  paymentStatus: 'free_invite',
+  subscriptionActive: true,
   inviteCode: inviteCode || null
 });
-
-if (isFreeInvite) {
   msg.textContent = 'Account created! Redirecting...';
   setTimeout(() => {
     window.location.href = 'dashboard.html';
@@ -301,8 +302,8 @@ await setDoc(doc(db, 'vendors', uid), {
   profileVisible: false,
   published: false,
   membershipTier: finalTier,
-  paymentStatus: isFreeInvite ? 'free_invite' : 'pending',
-  subscriptionActive: isFreeInvite ? true : false,
+paymentStatus: 'pending',
+subscriptionActive: false,
   inviteCode: inviteCode || null
 });
 
