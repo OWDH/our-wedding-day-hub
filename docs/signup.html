@@ -276,7 +276,7 @@ await setDoc(doc(db, 'vendors', uid), {
   visible: false,
   profileVisible: false,
   published: false,
-  membershipTier: selectedTier,
+  membershipTier: finalTier,
   paymentStatus: isFreeInvite ? 'free_invite' : 'pending',
   subscriptionActive: isFreeInvite ? true : false,
   inviteCode: inviteCode || null
@@ -289,7 +289,24 @@ if (isFreeInvite) {
   }, 1000);
 } else {
   msg.textContent = 'Account created! Redirecting you to payment…';
-  const paymentUrl = selectedTierLink + '?client_reference_id=' + uid + '&prefilled_email=' + encodeURIComponent(email);
+  const selectedCard = document.querySelector('.tier-card.selected');
+
+const finalTier = selectedCard ? selectedCard.dataset.tier : 'edit';
+const finalTierLink = selectedCard ? selectedCard.dataset.link : 'https://buy.stripe.com/bJe28reSg8FF4H70XodnW00';
+
+await setDoc(doc(db, 'vendors', uid), {
+  ...userData,
+  approved: false,
+  visible: false,
+  profileVisible: false,
+  published: false,
+  membershipTier: finalTier,
+  paymentStatus: isFreeInvite ? 'free_invite' : 'pending',
+  subscriptionActive: isFreeInvite ? true : false,
+  inviteCode: inviteCode || null
+});
+
+const paymentUrl = finalTierLink + '?client_reference_id=' + uid + '&prefilled_email=' + encodeURIComponent(email);
   setTimeout(() => {
     window.location.href = paymentUrl;
   }, 1200);
