@@ -264,6 +264,11 @@ const isFreeInvite = inviteCode === 'foundingvendor2026';
     if (password.length < 6) { msg.textContent = 'Password must be at least 6 characters.'; return; }
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
+      if (window.zaraz) {
+  window.zaraz.track('CompleteRegistration', {
+    registration_type: currentRole
+  });
+}
       const uid = cred.user.uid;
       const userData = { email, role: currentRole, createdAt: serverTimestamp() };
       if (currentRole === 'vendor') {
