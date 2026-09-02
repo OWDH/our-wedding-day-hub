@@ -62,10 +62,10 @@
 
   <p class="tier-select-label">Choose your membership tier</p>
   <div class="tier-grid" id="tierGrid">
-    <div class="tier-card selected" data-tier="edit" data-monthly="4.75" data-link="https://buy.stripe.com/bJe28reSg8FF4H70XodnW00"><p class="tier-name">Edit</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $4.75/mo AUD</span><span class="tier-price-converted" data-converted-for="edit"></span></p></div>
-    <div class="tier-card" data-tier="spotlight" data-monthly="5.95" data-link="https://buy.stripe.com/eVq6oH39y5ttehH5dEdnW01"><p class="tier-name">Spotlight</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $5.95/mo AUD</span><span class="tier-price-converted" data-converted-for="spotlight"></span></p></div>
-    <div class="tier-card" data-tier="feature" data-monthly="7.25" data-link="https://buy.stripe.com/7sY4gz6lKcVV5Lb21sdnW02"><p class="tier-name">Feature</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $7.25/mo AUD</span><span class="tier-price-converted" data-converted-for="feature"></span></p></div>
-    <div class="tier-card" data-tier="icon" data-monthly="9.95" data-link="https://buy.stripe.com/cNibJ1eSg099flL49AdnW03"><p class="tier-name">Icon</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $9.95/mo AUD</span><span class="tier-price-converted" data-converted-for="icon"></span></p></div>
+    <div class="tier-card selected" data-tier="edit" data-monthly="14.75"><p class="tier-name">Edit</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $14.75/mo AUD</span><span class="tier-price-converted" data-converted-for="edit"></span></p></div>
+    <div class="tier-card" data-tier="spotlight" data-monthly="15.95"><p class="tier-name">Spotlight</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $15.95/mo AUD</span><span class="tier-price-converted" data-converted-for="spotlight"></span></p></div>
+    <div class="tier-card" data-tier="feature" data-monthly="17.25"><p class="tier-name">Feature</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $17.25/mo AUD</span><span class="tier-price-converted" data-converted-for="feature"></span></p></div>
+    <div class="tier-card" data-tier="icon" data-monthly="19.95"><p class="tier-name">Icon</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $19.95/mo AUD</span><span class="tier-price-converted" data-converted-for="icon"></span></p></div>
   </div>
   <p class="tier-currency-note" id="currencyNote" style="display:none;"></p>
 
@@ -75,11 +75,10 @@
 </main>
 
 <script type="module">
-  import { auth, db, doc, setDoc, signOut, onAuthStateChanged } from "./firebase.js";
+  import { auth, db, doc, setDoc, signOut, onAuthStateChanged, callFunctionsApi } from "./firebase.js";
 
   let currentUser = null;
   let selectedTier = "edit";
-  let selectedLink = "https://buy.stripe.com/bJe28reSg8FF4H70XodnW00";
 
   // ── CURRENCY LOCALISATION (display only — all charges happen in AUD) ──
   var REGION_CURRENCY = {
@@ -143,19 +142,38 @@
       document.querySelectorAll(".tier-card").forEach(function(c) { c.classList.remove("selected"); });
       card.classList.add("selected");
       selectedTier = card.dataset.tier;
-      selectedLink = card.dataset.link;
     });
   });
 
   document.getElementById("goToPaymentBtn").addEventListener("click", async function() {
     const status = document.getElementById("prStatus");
+    const btn = document.getElementById("goToPaymentBtn");
     if (!currentUser) { status.textContent = "Please log in first."; return; }
     status.textContent = "Redirecting to secure payment\u2026";
+    btn.disabled = true;
     try {
       await setDoc(doc(db, "vendors", currentUser.uid), { membershipTier: selectedTier, paymentStatus: "pending" }, { merge: true });
-    } catch (err) { console.error(err); }
-    const paymentUrl = selectedLink + "?client_reference_id=" + currentUser.uid + "&prefilled_email=" + encodeURIComponent(currentUser.email || "");
-    window.location.href = paymentUrl;
+      const checkout = await callFunctionsApi("/create-checkout-session", {
+        user: currentUser,
+        body: { plan: ({ edit: "classic", spotlight: "signature", feature: "elite", icon: "platinum" }[selectedTier] || selectedTier) }
+      });
+      if (checkout && checkout.alreadyPaid) {
+        window.location.href = "dashboard.html";
+        return;
+      }
+      if (!checkout || !checkout.url) {
+        throw new Error("Payment is not available right now. Please try again.");
+      }
+      window.location.href = checkout.url;
+    } catch (err) {
+      console.error(err);
+      if (err && err.data && err.data.alreadyPaid) {
+        window.location.href = "dashboard.html";
+        return;
+      }
+      btn.disabled = false;
+      status.textContent = (err && err.message) ? err.message : "Payment is not available right now. Please try again or contact us.";
+    }
   });
 
   function logout() {
@@ -164,9 +182,17 @@
   document.getElementById("topLogoutBtn").addEventListener("click", logout);
   document.getElementById("prLogoutLink").addEventListener("click", logout);
 
-  onAuthStateChanged(auth, function(user) {
+  onAuthStateChanged(auth, async function(user) {
     if (!user) { window.location.href = "login.html"; return; }
     currentUser = user;
+    try {
+      const membership = await callFunctionsApi("/verify-membership", { user });
+      if (membership && membership.access) {
+        window.location.href = "dashboard.html";
+      }
+    } catch (err) {
+      console.warn("Membership check on paywall failed:", err);
+    }
   });
 </script>
 
