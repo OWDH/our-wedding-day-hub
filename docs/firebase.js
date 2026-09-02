@@ -77,6 +77,13 @@ export {
 };
 export const FUNCTIONS_API_BASE = "https://us-central1-ourweddingdayhub.cloudfunctions.net/api";
 
+export function isMissingFunctionsRoute(err) {
+  if (!err) return false;
+  if (err.status === 404) return true;
+  const message = String(err.message || "");
+  return /Cannot POST/i.test(message) || /Endpoint not found/i.test(message);
+}
+
 export async function callFunctionsApi(path, { method = "POST", body, user } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (user) {
@@ -91,7 +98,7 @@ export async function callFunctionsApi(path, { method = "POST", body, user } = {
   const data = await res.json().catch(() => ({}));
   if (res.status === 409 && data.alreadyPaid) return data;
   if (!res.ok) {
-    const err = new Error(data.error || "Request failed");
+    const err = new Error(data.error || (res.status === 404 ? "Endpoint not found" : "Request failed"));
     err.status = res.status;
     err.data = data;
     throw err;
