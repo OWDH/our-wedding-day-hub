@@ -114,10 +114,10 @@
       <div class="tier-select-wrap vendor-only" id="tierSelectWrap">
         <p class="tier-select-label">Choose your membership tier</p>
         <div class="tier-grid" id="tierGrid">
-          <div class="tier-card selected" data-tier="edit" data-monthly="14.75" data-link="https://buy.stripe.com/28E8wPfWk5tt1uV49AdnW08"><p class="tier-name">Edit</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $14.75/mo AUD</span><span class="tier-price-converted" data-converted-for="edit"></span></p></div>
-<div class="tier-card" data-tier="spotlight" data-monthly="15.95" data-link="https://buy.stripe.com/14A7sL6lKg872yZaxYdnW09"><p class="tier-name">Spotlight</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $15.95/mo AUD</span><span class="tier-price-converted" data-converted-for="spotlight"></span></p></div>
-<div class="tier-card" data-tier="feature" data-monthly="17.25" data-link="https://buy.stripe.com/7sYeVddOcaNN0qR7lMdnW0a"><p class="tier-name">Feature</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $17.25/mo AUD</span><span class="tier-price-converted" data-converted-for="feature"></span></p></div>
-<div class="tier-card" data-tier="icon" data-monthly="19.95" data-link="https://buy.stripe.com/eVqcN56lK9JJb5vaxYdnW0b"><p class="tier-name">Icon</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $19.95/mo AUD</span><span class="tier-price-converted" data-converted-for="icon"></span></p></div>
+          <div class="tier-card selected" data-tier="edit" data-monthly="14.75"><p class="tier-name">Edit</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $14.75/mo AUD</span><span class="tier-price-converted" data-converted-for="edit"></span></p></div>
+<div class="tier-card" data-tier="spotlight" data-monthly="15.95"><p class="tier-name">Spotlight</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $15.95/mo AUD</span><span class="tier-price-converted" data-converted-for="spotlight"></span></p></div>
+<div class="tier-card" data-tier="feature" data-monthly="17.25"><p class="tier-name">Feature</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $17.25/mo AUD</span><span class="tier-price-converted" data-converted-for="feature"></span></p></div>
+<div class="tier-card" data-tier="icon" data-monthly="19.95"><p class="tier-name">Icon</p><p class="tier-price"><span class="tier-price-aud">$50 setup + $19.95/mo AUD</span><span class="tier-price-converted" data-converted-for="icon"></span></p></div>
         </div>
         <p class="tier-currency-note" id="currencyNote" style="display:none;"></p>
       </div>
@@ -164,10 +164,9 @@
   <p style="font-family:var(--font-sans);font-size:.65rem;color:var(--ink-muted);letter-spacing:.12em;text-transform:uppercase;text-align:center;padding-bottom:40px;">Proudly inclusive &#8226; Worldwide &#8226; Built with heart</p>
 </footer>
 <script type="module">
-  import { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp } from './firebase.js';
+  import { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp, callFunctionsApi } from './firebase.js';
   let currentRole = 'vendor';
   let selectedTier = 'edit';
- let selectedTierLink = 'https://buy.stripe.com/28E8wPfWk5tt1uV49AdnW08';
   const params = new URLSearchParams(window.location.search);
 const inviteCode = params.get('invite');
 const isFreeInvite = inviteCode === 'foundingvendor2026';
@@ -238,7 +237,6 @@ const isFreeInvite = inviteCode === 'foundingvendor2026';
       document.querySelectorAll('.tier-card').forEach(function(c) { c.classList.remove('selected'); });
       card.classList.add('selected');
       selectedTier = card.dataset.tier;
-      selectedTierLink = card.dataset.link;
     });
   });
 
@@ -294,34 +292,50 @@ if (isFreeInvite) {
     window.location.href = 'dashboard.html';
   }, 1000);
 } else {
-  msg.textContent = 'Account created! Redirecting you to payment…';
+  msg.textContent = 'Account created! Redirecting you to payment\u2026';
   const selectedCard = document.querySelector('.tier-card.selected');
+  const finalTier = selectedCard ? selectedCard.dataset.tier : 'edit';
+  const apiPlan = { edit: 'classic', spotlight: 'signature', feature: 'elite', icon: 'platinum' }[finalTier] || finalTier;
+  await setDoc(doc(db, 'vendors', uid), {
+    ...userData,
+    approved: false,
+    visible: false,
+    profileVisible: false,
+    published: false,
+    membershipTier: finalTier,
+    paymentStatus: 'pending',
+    subscriptionActive: false,
+    inviteCode: inviteCode || null
+  });
 
-const finalTier = selectedCard ? selectedCard.dataset.tier : 'edit';
-const finalTierLink = selectedCard ? selectedCard.dataset.link : 'https://buy.stripe.com/28E8wPfWk5tt1uV49AdnW08';
-await setDoc(doc(db, 'vendors', uid), {
-  ...userData,
-  approved: false,
-  visible: false,
-  profileVisible: false,
-  published: false,
-  membershipTier: finalTier,
-paymentStatus: 'pending',
-subscriptionActive: false,
-  inviteCode: inviteCode || null
-});
-
-const paymentUrl = finalTierLink + '?client_reference_id=' + uid + '&prefilled_email=' + encodeURIComponent(email);
-  setTimeout(() => {
-    window.location.href = paymentUrl;
-  }, 1200);
+  try {
+    const checkout = await callFunctionsApi('/create-checkout-session', {
+      user: cred.user,
+      body: { plan: apiPlan }
+    });
+    if (checkout && checkout.alreadyPaid) {
+      window.location.href = 'dashboard.html';
+      return;
+    }
+    if (!checkout || !checkout.url) {
+      throw new Error('Payment is not available right now. Please try again.');
+    }
+    window.location.href = checkout.url;
+  } catch (payErr) {
+    console.error(payErr);
+    if (payErr && payErr.data && payErr.data.alreadyPaid) {
+      window.location.href = 'dashboard.html';
+      return;
+    }
+    msg.textContent = (payErr && payErr.message) ? payErr.message : 'Payment is not available right now. Your account was created \u2014 log in to finish payment.';
+  }
 }
 
       } else {
         userData.partnerOne = document.getElementById('partnerOne').value.trim();
         userData.partnerTwo = document.getElementById('partnerTwo').value.trim();
         await setDoc(doc(db, 'users', uid), userData);
-        msg.textContent = 'Account created! Redirecting…';
+        msg.textContent = 'Account created! Redirecting\u2026';
         setTimeout(() => { window.location.href = 'couple-dashboard.html'; }, 1000);
       }
     } catch (err) { msg.textContent = 'Error: ' + err.message; }
