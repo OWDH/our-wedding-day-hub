@@ -75,7 +75,7 @@
 </main>
 
 <script type="module">
-  import { auth, db, doc, setDoc, signOut, onAuthStateChanged, callFunctionsApi } from "./firebase.js";
+  import { auth, db, doc, setDoc, getDoc, signOut, onAuthStateChanged, callFunctionsApi, isMissingFunctionsRoute } from "./firebase.js";
 
   let currentUser = null;
   let selectedTier = "edit";
@@ -189,9 +189,24 @@
       const membership = await callFunctionsApi("/verify-membership", { user });
       if (membership && membership.access) {
         window.location.href = "dashboard.html";
+        return;
       }
     } catch (err) {
-      console.warn("Membership check on paywall failed:", err);
+      if (!isMissingFunctionsRoute(err)) {
+        console.warn("Membership check on paywall failed:", err);
+      }
+    }
+    try {
+      const vendorSnap = await getDoc(doc(db, "vendors", user.uid));
+      const vd = vendorSnap.exists() ? vendorSnap.data() : {};
+      const alreadyPaid = vd.paymentStatus === "paid" || vd.subscriptionActive === true || vd.paidSetupFee === true
+        || vd.complimentaryPlan === true || vd.plan === "complimentary" || vd.accessType === "complimentary-invite"
+        || vd.paymentStatus === "free_invite" || vd.paymentStatus === "free_link";
+      if (alreadyPaid) {
+        window.location.href = "dashboard.html";
+      }
+    } catch (err) {
+      console.warn("Paywall vendor lookup failed:", err);
     }
   });
 </script>
