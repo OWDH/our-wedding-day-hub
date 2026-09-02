@@ -3,7 +3,7 @@
 // Live Stripe Price IDs currently used by /create-checkout-session.
 // Confirm in the Stripe Dashboard that these still match public pricing:
 //   setup      = $50 one-time
-//   edit       = $14.75/mo  (legacy name: classic)
+//   edit       = $14.95/mo  (legacy name: classic)
 //   spotlight  = $15.95/mo  (legacy name: signature)
 //   feature    = $17.25/mo  (legacy name: elite)
 //   icon       = $19.95/mo  (legacy name: platinum)
