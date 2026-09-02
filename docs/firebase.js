@@ -75,3 +75,26 @@ export {
   uploadBytes,
   getDownloadURL
 };
+export const FUNCTIONS_API_BASE = "https://us-central1-ourweddingdayhub.cloudfunctions.net/api";
+
+export async function callFunctionsApi(path, { method = "POST", body, user } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (user) {
+    const token = await user.getIdToken();
+    headers.Authorization = "Bearer " + token;
+  }
+  const res = await fetch(FUNCTIONS_API_BASE + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 409 && data.alreadyPaid) return data;
+  if (!res.ok) {
+    const err = new Error(data.error || "Request failed");
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
