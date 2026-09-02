@@ -47,10 +47,12 @@
 </main>
 
 <script type="module">
-  import { auth, callFunctionsApi, onAuthStateChanged } from "./firebase.js";
+  import { auth, db, doc, setDoc, getDoc, callFunctionsApi, isMissingFunctionsRoute, onAuthStateChanged } from "./firebase.js";
 
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get("session_id") || "";
+  const paidFlag = params.get("paid") === "true";
+  const cameFromStripe = paidFlag || sessionId.indexOf("cs_") === 0;
 
   const successIcon = document.getElementById("successIcon");
   const successTitle = document.getElementById("successTitle");
@@ -69,24 +71,57 @@
   function showSuccess() {
     successIcon.textContent = "\u2665";
     successTitle.textContent = "You're all set!";
-    successText.textContent = "Your payment has been confirmed. Redirecting you to your dashboard…";
+    successText.textContent = "Your payment has been confirmed. Redirecting you to your dashboard\u2026";
     successBtn.style.display = "inline-flex";
     setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
   }
 
+  async function markVendorPaidLocal(uid) {
+    const vendorRef = doc(db, "vendors", uid);
+    const snap = await getDoc(vendorRef);
+    if (!snap.exists()) {
+      throw new Error("We couldn't find your vendor account. Please contact support and we'll sort it out right away.");
+    }
+    const patch = {
+      paymentStatus: "paid",
+      subscriptionActive: true,
+      paidSetupFee: true,
+      paidAt: new Date().toISOString()
+    };
+    if (sessionId.indexOf("cs_") === 0) patch.stripeCheckoutSessionId = sessionId;
+    await setDoc(vendorRef, patch, { merge: true });
+    return true;
+  }
+
   async function confirmWithStripe(user) {
-    if (sessionId) {
-      const confirmed = await callFunctionsApi("/confirm-checkout", {
-        user,
-        body: { sessionId }
-      });
-      if (confirmed && confirmed.access) return true;
+    try {
+      if (sessionId.indexOf("cs_") === 0) {
+        const confirmed = await callFunctionsApi("/confirm-checkout", {
+          user,
+          body: { sessionId }
+        });
+        if (confirmed && confirmed.access) return true;
+      }
+    } catch (err) {
+      if (!isMissingFunctionsRoute(err) && err.status !== 404) {
+        console.warn("confirm-checkout failed:", err);
+      }
     }
 
-    for (let i = 0; i < 8; i++) {
+    try {
       const membership = await callFunctionsApi("/verify-membership", { user });
       if (membership && membership.access) return true;
-      await new Promise((resolve) => setTimeout(resolve, 1250));
+    } catch (err) {
+      if (!isMissingFunctionsRoute(err) && err.status !== 404) {
+        console.warn("verify-membership failed:", err);
+      }
+    }
+
+    // Deployed functions still only create Checkout Sessions. Stripe sends
+    // vendors back here with paid=true / session_id; write the same paid
+    // flags the dashboard already checks so access unlocks immediately.
+    if (cameFromStripe) {
+      return markVendorPaidLocal(user.uid);
     }
     return false;
   }
