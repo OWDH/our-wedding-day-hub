@@ -47,10 +47,10 @@
 </main>
 
 <script type="module">
-  import { auth, db, doc, setDoc, getDoc, onAuthStateChanged } from "./firebase.js";
+  import { auth, callFunctionsApi, onAuthStateChanged } from "./firebase.js";
 
   const params = new URLSearchParams(window.location.search);
-  const refId = params.get("client_reference_id") || params.get("uid") || "";
+  const sessionId = params.get("session_id") || "";
 
   const successIcon = document.getElementById("successIcon");
   const successTitle = document.getElementById("successTitle");
@@ -66,39 +66,46 @@
     successBtn.style.display = "inline-flex";
   }
 
-  async function markVendorPaid(uid) {
-    try {
-      const vendorRef = doc(db, "vendors", uid);
-      const snap = await getDoc(vendorRef);
-      if (!snap.exists()) {
-        showError("We couldn't find your vendor account. Please contact support and we'll sort it out right away.");
-        return;
-      }
-      await setDoc(vendorRef, {
-        paymentStatus: "paid",
-        subscriptionActive: true,
-        paidAt: new Date().toISOString()
-      }, { merge: true });
-
-      successIcon.textContent = "\u2665";
-      successTitle.textContent = "You're all set!";
-      successText.textContent = "Your payment has been confirmed. Redirecting you to your dashboard…";
-      setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
-    } catch (err) {
-      console.error("Payment confirmation error:", err);
-      showError("Something went wrong confirming your payment. Please contact support and we'll fix this for you.");
-    }
+  function showSuccess() {
+    successIcon.textContent = "\u2665";
+    successTitle.textContent = "You're all set!";
+    successText.textContent = "Your payment has been confirmed. Redirecting you to your dashboard…";
+    successBtn.style.display = "inline-flex";
+    setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
   }
 
-  onAuthStateChanged(auth, function(user) {
-    // Prefer the logged-in user's own UID (most reliable) — fall back to the
-    // client_reference_id passed back from Stripe if for some reason they're logged out.
-    const uid = (user && user.uid) ? user.uid : refId;
-    if (!uid) {
-      showError("We couldn't identify your account. Please log in and try again, or contact support.");
+  async function confirmWithStripe(user) {
+    if (sessionId) {
+      const confirmed = await callFunctionsApi("/confirm-checkout", {
+        user,
+        body: { sessionId }
+      });
+      if (confirmed && confirmed.access) return true;
+    }
+
+    for (let i = 0; i < 8; i++) {
+      const membership = await callFunctionsApi("/verify-membership", { user });
+      if (membership && membership.access) return true;
+      await new Promise((resolve) => setTimeout(resolve, 1250));
+    }
+    return false;
+  }
+
+  onAuthStateChanged(auth, async function(user) {
+    if (!user) {
+      showError("Please log in so we can attach this payment to your vendor account.");
+      successBtn.href = "login.html";
+      successBtn.textContent = "Log in \u2192";
       return;
     }
-    markVendorPaid(uid);
+    try {
+      const ok = await confirmWithStripe(user);
+      if (ok) showSuccess();
+      else showError("Stripe has your payment, but membership is still activating. Open your dashboard in a moment, or contact support if it stays locked.");
+    } catch (err) {
+      console.error("Payment confirmation error:", err);
+      showError(err.message || "Something went wrong confirming your payment. Please contact support and we'll fix this for you.");
+    }
   });
 </script>
 
