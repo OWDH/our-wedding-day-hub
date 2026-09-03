@@ -52,7 +52,8 @@
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get("session_id") || "";
   const paidFlag = params.get("paid") === "true";
-  const cameFromStripe = paidFlag || sessionId.indexOf("cs_") === 0;
+  const clientRef = params.get("client_reference_id") || "";
+  const cameFromStripe = paidFlag || sessionId.indexOf("cs_") === 0 || clientRef.length > 0;
 
   const successIcon = document.getElementById("successIcon");
   const successTitle = document.getElementById("successTitle");

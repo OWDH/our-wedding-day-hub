@@ -38,6 +38,7 @@
 
     .pr-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:14px 30px;border:none;background:var(--ink);color:var(--cream);font-family:var(--font-sans);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:background .2s;width:100%}
     .pr-btn:hover{background:var(--ink-mid)}
+    .pr-btn.is-busy{pointer-events:none;opacity:.7}
     .pr-status{font-family:var(--font-sans);font-size:.78rem;color:var(--ink-muted);margin-top:14px;min-height:1.2em}
     .pr-logout{margin-top:24px;font-family:var(--font-sans);font-size:.78rem;color:var(--ink-ghost);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
     .pr-logout:hover{color:var(--ink)}
@@ -69,8 +70,8 @@
   </div>
   <p class="tier-currency-note" id="currencyNote" style="display:none;"></p>
 
-  <button type="button" class="pr-btn" id="goToPaymentBtn">Continue to Payment &#8594;</button>
-  <p class="pr-status" id="prStatus"></p>
+  <a class="pr-btn" id="goToPaymentBtn" href="https://buy.stripe.com/28E8wPfWk5tt1uV49AdnW08" target="_top" rel="noopener">Continue to Payment &#8594;</a>
+  <p class="pr-status" id="prStatus">Choose a membership tier, then continue to secure payment.</p>
   <button type="button" class="pr-logout" id="prLogoutLink">Log out</button>
 </main>
 
@@ -79,6 +80,81 @@
 
   let currentUser = null;
   let selectedTier = "edit";
+  let vendorRecord = {};
+  let checkoutInFlight = false;
+
+  // Live function still expects legacy plan names (classic/signature/elite/platinum).
+  // Sending edit/spotlight/feature/icon returns "Invalid plan selected."
+  const TIER_TO_PLAN = { edit: "classic", spotlight: "signature", feature: "elite", icon: "platinum" };
+
+  // Live $14.95+ Payment Links — fallback if Checkout Sessions fail.
+  // Do not use the cheaper buy.stripe.com links ending dnW00–dnW03.
+  const PAYMENT_LINKS = {
+    edit: "https://buy.stripe.com/28E8wPfWk5tt1uV49AdnW08",
+    spotlight: "https://buy.stripe.com/14A7sL6lKg872yZaxYdnW09",
+    feature: "https://buy.stripe.com/7sYeVddOcaNN0qR7lMdnW0a",
+    icon: "https://buy.stripe.com/eVqcN56lK9JJb5vaxYdnW0b"
+  };
+  const LOGIN_RETURN = "login.html?next=" + encodeURIComponent("payment-required.html");
+
+  function setStatus(message) {
+    const status = document.getElementById("prStatus");
+    if (status) status.textContent = message || "";
+  }
+
+  function setBusy(busy) {
+    checkoutInFlight = busy;
+    const btn = document.getElementById("goToPaymentBtn");
+    if (btn) btn.classList.toggle("is-busy", busy);
+  }
+
+  function vendorAlreadyHasAccess(vd) {
+    if (!vd) return false;
+    return vd.paymentStatus === "paid"
+      || vd.subscriptionActive === true
+      || vd.paidSetupFee === true
+      || vd.complimentaryPlan === true
+      || vd.plan === "complimentary"
+      || vd.accessType === "complimentary-invite"
+      || vd.founding === true
+      || vd.foundingVendor === true
+      || vd.paymentStatus === "free_invite"
+      || vd.paymentStatus === "free_link";
+  }
+
+  function inEmbeddedFrame() {
+    try { return window.self !== window.top; } catch (e) { return true; }
+  }
+
+  function paymentLinkFor(tier) {
+    const base = PAYMENT_LINKS[tier] || PAYMENT_LINKS.edit;
+    const params = new URLSearchParams();
+    if (currentUser && currentUser.uid) params.set("client_reference_id", currentUser.uid);
+    if (currentUser && currentUser.email) params.set("prefilled_email", currentUser.email);
+    const query = params.toString();
+    return query ? base + "?" + query : base;
+  }
+
+  function bindPaymentLink(tier) {
+    const url = paymentLinkFor(tier);
+    const btn = document.getElementById("goToPaymentBtn");
+    if (btn) {
+      btn.href = url;
+      btn.target = "_top";
+      btn.rel = "noopener";
+    }
+    return url;
+  }
+
+  function goToUrl(url) {
+    setStatus("Opening Stripe checkout\u2026");
+    if (inEmbeddedFrame()) {
+      try { window.top.location.href = url; return; } catch (err) {
+        console.warn("Top-level redirect blocked:", err);
+      }
+    }
+    window.location.href = url;
+  }
 
   // ── CURRENCY LOCALISATION (display only — all charges happen in AUD) ──
   var REGION_CURRENCY = {
@@ -136,44 +212,75 @@
   }
   applyCurrencyConversion();
 
-
   document.querySelectorAll(".tier-card").forEach(function(card) {
     card.addEventListener("click", function() {
       document.querySelectorAll(".tier-card").forEach(function(c) { c.classList.remove("selected"); });
       card.classList.add("selected");
       selectedTier = card.dataset.tier;
+      bindPaymentLink(selectedTier);
     });
   });
 
-  document.getElementById("goToPaymentBtn").addEventListener("click", async function() {
-    const status = document.getElementById("prStatus");
-    const btn = document.getElementById("goToPaymentBtn");
-    if (!currentUser) { status.textContent = "Please log in first."; return; }
-    status.textContent = "Redirecting to secure payment\u2026";
-    btn.disabled = true;
+  bindPaymentLink(selectedTier);
+
+  document.getElementById("goToPaymentBtn").addEventListener("click", async function(event) {
+    const selectedCard = document.querySelector(".tier-card.selected");
+    if (selectedCard && selectedCard.dataset.tier) selectedTier = selectedCard.dataset.tier;
+
+    if (currentUser && vendorAlreadyHasAccess(vendorRecord)) {
+      event.preventDefault();
+      setStatus("Your membership is already active. Opening your dashboard\u2026");
+      window.location.href = "dashboard.html";
+      return;
+    }
+
+    if (!currentUser) {
+      event.preventDefault();
+      setStatus("Please log in first. Redirecting\u2026");
+      window.location.href = LOGIN_RETURN;
+      return;
+    }
+
+    if (checkoutInFlight) {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+    setBusy(true);
+    setStatus("Redirecting to secure payment\u2026");
+    bindPaymentLink(selectedTier);
+
+    // Never block checkout on Firestore — permission errors were swallowing the click.
+    setDoc(doc(db, "vendors", currentUser.uid), {
+      membershipTier: selectedTier,
+      paymentStatus: vendorRecord.paymentStatus === "paid" ? "paid" : "pending"
+    }, { merge: true }).catch(function(saveErr) {
+      console.warn("Could not save selected tier before checkout:", saveErr);
+    });
+
     try {
-      await setDoc(doc(db, "vendors", currentUser.uid), { membershipTier: selectedTier, paymentStatus: "pending" }, { merge: true });
       const checkout = await callFunctionsApi("/create-checkout-session", {
         user: currentUser,
-        body: { plan: ({ edit: "classic", spotlight: "signature", feature: "elite", icon: "platinum" }[selectedTier] || selectedTier) }
+        body: { plan: TIER_TO_PLAN[selectedTier] || selectedTier }
       });
       if (checkout && checkout.alreadyPaid) {
         window.location.href = "dashboard.html";
         return;
       }
-      if (!checkout || !checkout.url) {
-        throw new Error("Payment is not available right now. Please try again.");
+      if (checkout && checkout.url) {
+        goToUrl(checkout.url);
+        return;
       }
-      window.location.href = checkout.url;
     } catch (err) {
-      console.error(err);
+      console.warn("Checkout session failed, using Payment Link:", err);
       if (err && err.data && err.data.alreadyPaid) {
         window.location.href = "dashboard.html";
         return;
       }
-      btn.disabled = false;
-      status.textContent = (err && err.message) ? err.message : "Payment is not available right now. Please try again or contact us.";
     }
+
+    goToUrl(paymentLinkFor(selectedTier));
   });
 
   function logout() {
@@ -183,11 +290,18 @@
   document.getElementById("prLogoutLink").addEventListener("click", logout);
 
   onAuthStateChanged(auth, async function(user) {
-    if (!user) { window.location.href = "login.html"; return; }
+    if (!user) {
+      setStatus("Please log in to continue to payment. Redirecting\u2026");
+      window.location.href = LOGIN_RETURN;
+      return;
+    }
     currentUser = user;
+    bindPaymentLink(selectedTier);
+    setStatus("Checking your membership\u2026");
     try {
       const membership = await callFunctionsApi("/verify-membership", { user });
       if (membership && membership.access) {
+        setStatus("Your membership is already active. Opening your dashboard\u2026");
         window.location.href = "dashboard.html";
         return;
       }
@@ -198,16 +312,17 @@
     }
     try {
       const vendorSnap = await getDoc(doc(db, "vendors", user.uid));
-      const vd = vendorSnap.exists() ? vendorSnap.data() : {};
-      const alreadyPaid = vd.paymentStatus === "paid" || vd.subscriptionActive === true || vd.paidSetupFee === true
-        || vd.complimentaryPlan === true || vd.plan === "complimentary" || vd.accessType === "complimentary-invite"
-        || vd.paymentStatus === "free_invite" || vd.paymentStatus === "free_link";
-      if (alreadyPaid) {
+      vendorRecord = vendorSnap.exists() ? vendorSnap.data() : {};
+      if (vendorAlreadyHasAccess(vendorRecord)) {
+        setStatus("Your membership is already active. Opening your dashboard\u2026");
         window.location.href = "dashboard.html";
+        return;
       }
     } catch (err) {
       console.warn("Paywall vendor lookup failed:", err);
     }
+    bindPaymentLink(selectedTier);
+    setStatus("Choose a membership tier, then continue to secure payment.");
   });
 </script>
 
