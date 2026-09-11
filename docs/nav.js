@@ -1,13 +1,14 @@
 // ── SHARED SITE NAV ──
 // Drop <div id="siteNav"></div> anywhere in your <body> (ideally before <main>)
-// and load this file with <script type="module" src="nav.js"></script>
-// It injects the topbar, wires the mobile menu, and handles auth state.
+// and load this file with <script type="module" src="nav.js"></script>.
+// Navigation renders independently of Firebase so a blocked/slow auth service
+// can never prevent the menu, mobile controls or Join link from working.
 
-import { auth, onAuthStateChanged, signOut, db, collection, query, where, getDocs } from "./firebase.js";
+const SITE_BUILD = "20260911-2";
 
 function buildSiteNav() {
   const navMount = document.getElementById("siteNav");
-  if (!navMount) return;
+  if (!navMount) return null;
 
   navMount.innerHTML = `
     <header class="site-topbar">
@@ -30,94 +31,116 @@ function buildSiteNav() {
           <button id="logoutLink" class="site-topbar-btn" style="display:none;">Log Out</button>
         </div>
         <a href="login.html" id="loginLink" class="site-topbar-link">Log In</a>
-        <a href="signup.html" id="joinLink" class="site-topbar-btn">Join</a>
+        <a href="signup.html?v=${SITE_BUILD}" id="joinLink" class="site-topbar-btn">Join</a>
         <button class="mobile-menu-btn" type="button" aria-label="Open menu">☰</button>
       </nav>
     </header>
   `;
 
-  // ── Mobile menu toggle ──
-  const menuBtn  = navMount.querySelector(".mobile-menu-btn");
+  const menuBtn = navMount.querySelector(".mobile-menu-btn");
   const navLinks = navMount.querySelector(".nav-links");
 
   if (menuBtn && navLinks) {
-    menuBtn.addEventListener("click", () => {
-      navLinks.classList.toggle("active");
-    });
-    // Close menu when a link inside it is tapped
+    menuBtn.addEventListener("click", () => navLinks.classList.toggle("active"));
     navLinks.addEventListener("click", (e) => {
       if (e.target.tagName === "A" || e.target.tagName === "BUTTON") {
         navLinks.classList.remove("active");
       }
     });
-    // Close menu when clicking outside
     document.addEventListener("click", (e) => {
-      if (!navMount.contains(e.target)) {
-        navLinks.classList.remove("active");
-      }
+      if (!navMount.contains(e.target)) navLinks.classList.remove("active");
     });
   }
 
-  // ── Auth state ──
-  const loginLink     = navMount.querySelector("#loginLink");
-  const joinLink      = navMount.querySelector("#joinLink");
-  const dashboardLink = navMount.querySelector("#dashboardLink");
-  const logoutLink    = navMount.querySelector("#logoutLink");
-  const messagesLink  = navMount.querySelector("#messagesLink");
-  const msgNavBadge   = navMount.querySelector("#msgNavBadge");
-
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      // Logged in
-      loginLink     && (loginLink.style.display     = "none");
-      joinLink      && (joinLink.style.display      = "none");
-      dashboardLink && (dashboardLink.style.display = "inline-flex");
-      logoutLink    && (logoutLink.style.display    = "inline-flex");
-      messagesLink  && (messagesLink.style.display  = "inline-flex");
-
-      // Unread message badge
-      try {
-        if (db && msgNavBadge) {
-          const msgQuery = query(
-            collection(db, "conversations"),
-            where("coupleId", "==", user.uid)
-          );
-          const msgSnap  = await getDocs(msgQuery);
-          let unread = 0;
-          msgSnap.forEach(d => { unread += (d.data().coupleUnread || 0); });
-          // Also check vendor unread
-          const vendorQuery = query(
-            collection(db, "conversations"),
-            where("vendorId", "==", user.uid)
-          );
-          const vendorSnap = await getDocs(vendorQuery);
-          vendorSnap.forEach(d => { unread += (d.data().vendorUnread || 0); });
-
-          if (unread > 0) {
-            msgNavBadge.textContent   = unread > 99 ? "99+" : unread;
-            msgNavBadge.style.display = "inline-block";
-          } else {
-            msgNavBadge.style.display = "none";
-          }
-        }
-      } catch (_) {
-        // Badge is optional — fail silently
-      }
-
-      logoutLink && logoutLink.addEventListener("click", async () => {
-        await signOut(auth);
-        window.location.href = "index.html";
-      });
-
-    } else {
-      // Logged out
-      loginLink     && (loginLink.style.display     = "inline-flex");
-      joinLink      && (joinLink.style.display      = "inline-flex");
-      dashboardLink && (dashboardLink.style.display = "none");
-      logoutLink    && (logoutLink.style.display    = "none");
-      messagesLink  && (messagesLink.style.display  = "none");
-    }
-  });
+  return navMount;
 }
 
-buildSiteNav();
+async function wireAuthState(navMount) {
+  if (!navMount) return;
+
+  const loginLink = navMount.querySelector("#loginLink");
+  const joinLink = navMount.querySelector("#joinLink");
+  const dashboardLink = navMount.querySelector("#dashboardLink");
+  const logoutLink = navMount.querySelector("#logoutLink");
+  const messagesLink = navMount.querySelector("#messagesLink");
+  const msgNavBadge = navMount.querySelector("#msgNavBadge");
+
+  // The logged-out state is the safe default. If Firebase is blocked by a
+  // browser privacy feature, extension or network filter, navigation still works.
+  loginLink && (loginLink.style.display = "inline-flex");
+  joinLink && (joinLink.style.display = "inline-flex");
+  dashboardLink && (dashboardLink.style.display = "none");
+  logoutLink && (logoutLink.style.display = "none");
+  messagesLink && (messagesLink.style.display = "none");
+
+  try {
+    const {
+      auth,
+      onAuthStateChanged,
+      signOut,
+      db,
+      collection,
+      query,
+      where,
+      getDocs
+    } = await import(`./firebase.js?v=${SITE_BUILD}`);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        loginLink && (loginLink.style.display = "none");
+        joinLink && (joinLink.style.display = "none");
+        dashboardLink && (dashboardLink.style.display = "inline-flex");
+        logoutLink && (logoutLink.style.display = "inline-flex");
+        messagesLink && (messagesLink.style.display = "inline-flex");
+
+        try {
+          if (db && msgNavBadge) {
+            const msgQuery = query(
+              collection(db, "conversations"),
+              where("coupleId", "==", user.uid)
+            );
+            const msgSnap = await getDocs(msgQuery);
+            let unread = 0;
+            msgSnap.forEach(d => { unread += (d.data().coupleUnread || 0); });
+
+            const vendorQuery = query(
+              collection(db, "conversations"),
+              where("vendorId", "==", user.uid)
+            );
+            const vendorSnap = await getDocs(vendorQuery);
+            vendorSnap.forEach(d => { unread += (d.data().vendorUnread || 0); });
+
+            if (unread > 0) {
+              msgNavBadge.textContent = unread > 99 ? "99+" : unread;
+              msgNavBadge.style.display = "inline-block";
+            } else {
+              msgNavBadge.style.display = "none";
+            }
+          }
+        } catch (_) {
+          // Unread badge is non-critical.
+        }
+
+        if (logoutLink && !logoutLink.dataset.authBound) {
+          logoutLink.dataset.authBound = "1";
+          logoutLink.addEventListener("click", async () => {
+            await signOut(auth);
+            window.location.href = "index.html";
+          });
+        }
+      } else {
+        loginLink && (loginLink.style.display = "inline-flex");
+        joinLink && (joinLink.style.display = "inline-flex");
+        dashboardLink && (dashboardLink.style.display = "none");
+        logoutLink && (logoutLink.style.display = "none");
+        messagesLink && (messagesLink.style.display = "none");
+      }
+    });
+  } catch (error) {
+    // Keep the functional logged-out navigation rather than failing the page.
+    console.warn("OWDH navigation auth unavailable; continuing without auth state.", error);
+  }
+}
+
+const navMount = buildSiteNav();
+wireAuthState(navMount);
