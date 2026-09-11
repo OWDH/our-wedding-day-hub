@@ -32,6 +32,7 @@ import {
   uploadBytes,
   getDownloadURL
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-storage.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyDQ2gwuJoe2si8xYfhB6n9mESfSon4zRq8",
   authDomain: "ourweddingdayhub.firebaseapp.com",
@@ -40,6 +41,7 @@ const firebaseConfig = {
   messagingSenderId: "221957124766",
   appId: "1:221957124766:web:83b7ba2351c1ad656e018f"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = initializeFirestore(app, {
@@ -47,10 +49,18 @@ const db = initializeFirestore(app, {
 });
 const storage = getStorage(app);
 
-// Vendor signup can be left in a half-created state if Firebase Authentication
-// succeeds but the profile/payment step fails afterwards. On the signup page,
-// resume the same-role account when the vendor retries with the same password
-// instead of trapping them behind auth/email-already-in-use.
+function existingAccountError(originalError) {
+  const error = new Error("This email already has an account. Please log in or reset your password to continue.");
+  error.code = "auth/email-already-in-use";
+  error.originalError = originalError || null;
+  return error;
+}
+
+// Signup can be left in a half-created state if Firebase Authentication
+// succeeds but a profile/payment step fails afterwards. On the signup page,
+// resume the same-role account when the user retries with the same password.
+// If the password does not match the existing Firebase account, return a clear
+// account-exists error rather than exposing Firebase's auth/invalid-credential.
 async function createUserWithEmailAndPassword(authInstance, email, password) {
   try {
     if (typeof window !== "undefined") window.__owdhResumedSignup = false;
@@ -59,7 +69,22 @@ async function createUserWithEmailAndPassword(authInstance, email, password) {
     const onSignupPage = typeof document !== "undefined" && Boolean(document.getElementById("signupForm"));
     if (!onSignupPage || !error || error.code !== "auth/email-already-in-use") throw error;
 
-    const credential = await signInWithEmailAndPassword(authInstance, email, password);
+    let credential;
+    try {
+      credential = await signInWithEmailAndPassword(authInstance, email, password);
+    } catch (resumeError) {
+      const resumeCode = String((resumeError && resumeError.code) || "");
+      if (
+        resumeCode === "auth/invalid-credential" ||
+        resumeCode === "auth/wrong-password" ||
+        resumeCode === "auth/user-not-found" ||
+        resumeCode === "auth/invalid-login-credentials"
+      ) {
+        throw existingAccountError(resumeError);
+      }
+      throw resumeError;
+    }
+
     const vendorTab = document.getElementById("tabVendor");
     const coupleTab = document.getElementById("tabCouple");
     const requestedRole = vendorTab && vendorTab.classList.contains("active")
@@ -71,13 +96,12 @@ async function createUserWithEmailAndPassword(authInstance, email, password) {
       const existingRole = existingUserSnap.exists() ? String(existingUserSnap.data().role || "") : "";
       if (existingRole && requestedRole && existingRole !== requestedRole) {
         await signOut(authInstance);
-        throw error;
+        throw existingAccountError(error);
       }
     } catch (lookupError) {
-      // A missing/blocked profile lookup is consistent with the partial-signup
-      // state we are recovering from. Only propagate the original auth error
-      // when we deliberately detected a role mismatch above.
-      if (lookupError === error) throw lookupError;
+      // A missing/blocked profile lookup is consistent with a partial-signup
+      // state. Only propagate deliberate account/role errors.
+      if (lookupError && lookupError.code === "auth/email-already-in-use") throw lookupError;
       console.warn("Could not verify existing signup profile; resuming account:", lookupError);
     }
 
@@ -115,6 +139,7 @@ export {
   uploadBytes,
   getDownloadURL
 };
+
 export const FUNCTIONS_API_BASE = "https://us-central1-ourweddingdayhub.cloudfunctions.net/api";
 
 export function isMissingFunctionsRoute(err) {
@@ -130,6 +155,7 @@ const VENDOR_PAYMENT_LINKS = {
   feature: "https://buy.stripe.com/7sYeVddOcaNN0qR7lMdnW0a",
   icon: "https://buy.stripe.com/eVqcN56lK9JJb5vaxYdnW0b"
 };
+
 const VENDOR_PLAN_ALIASES = {
   classic: "edit",
   signature: "spotlight",
@@ -153,8 +179,7 @@ function directVendorPaymentLink(plan, user) {
 
 export async function callFunctionsApi(path, { method = "POST", body, user } = {}) {
   // Use the four approved Stripe Payment Links for new vendor checkout. This
-  // avoids reusing a stale open Checkout Session from a different tier, which
-  // was causing every package choice to reopen the original/lowest package.
+  // avoids reusing a stale open Checkout Session from a different tier.
   if (path === "/create-checkout-session" && method === "POST" && body && body.plan) {
     const paymentUrl = directVendorPaymentLink(body.plan, user);
     if (paymentUrl) return { url: paymentUrl, paymentLink: true };
@@ -165,6 +190,7 @@ export async function callFunctionsApi(path, { method = "POST", body, user } = {
     const token = await user.getIdToken();
     headers.Authorization = "Bearer " + token;
   }
+
   const res = await fetch(FUNCTIONS_API_BASE + path, {
     method,
     headers,
