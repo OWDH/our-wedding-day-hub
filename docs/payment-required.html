@@ -110,9 +110,11 @@
 
   function vendorAlreadyHasAccess(vd) {
     if (!vd) return false;
+    const stripeStatus = String(vd.stripeSubscriptionStatus || "").toLowerCase();
     return vd.paymentStatus === "paid"
       || vd.subscriptionActive === true
       || vd.paidSetupFee === true
+      || ["active", "trialing", "past_due"].includes(stripeStatus)
       || vd.complimentaryPlan === true
       || vd.plan === "complimentary"
       || vd.accessType === "complimentary-invite"
@@ -313,6 +315,17 @@
     try {
       const vendorSnap = await getDoc(doc(db, "vendors", user.uid));
       vendorRecord = vendorSnap.exists() ? vendorSnap.data() : {};
+
+      // Keep returning vendors on the membership tier already stored against
+      // their account instead of silently defaulting them back to Edit.
+      const savedTier = String(vendorRecord.membershipTier || vendorRecord.tier || "").toLowerCase();
+      if (["edit", "spotlight", "feature", "icon"].includes(savedTier)) {
+        selectedTier = savedTier;
+        document.querySelectorAll(".tier-card").forEach(function(card) {
+          card.classList.toggle("selected", card.dataset.tier === selectedTier);
+        });
+      }
+
       if (vendorAlreadyHasAccess(vendorRecord)) {
         setStatus("Your membership is already active. Opening your dashboard\u2026");
         window.location.href = "dashboard.html";
