@@ -411,7 +411,7 @@
                 <option value="free_forever">Free forever (founding vendor)</option>
                 <option value="trial">Trial</option>
                 <option value="cancelled">Cancelled</option>
-                <option value="unknown">Unknown</option>
+                <option value="unknown">Preserve current payment state</option>
               </select>
             </div>
 
@@ -1088,57 +1088,6 @@ async function removeMediaUrl(type, url) {
     const updated=getCanonicalImages(selectedVendor).filter(u=>u!==url);
     const cur=selectedVendor.coverImageUrl||"";
     const newCover=(cur===url||!updated.includes(cur))?(updated[0]||""):cur;
-    const accessChoice = accessTypeInput.value;
-  let accessUpdates = {};
-  if (accessChoice === "free_forever") {
-    accessUpdates = {
-      foundingVendor: true,
-      complimentaryPlan: true,
-      plan: "complimentary",
-      subscriptionType: "complimentary",
-      subscription: "complimentary",
-      subscriptionActive: true,
-      paymentStatus: "free_link",
-      accessType: "complimentary-invite"
-    };
-  } else if (accessChoice === "paid") {
-    accessUpdates = {
-      foundingVendor: false,
-      complimentaryPlan: false,
-      plan: "paid",
-      subscriptionType: "paid",
-      subscription: "paid",
-      subscriptionActive: true,
-      paymentStatus: "paid",
-      accessType: ""
-    };
-  } else if (accessChoice === "trial") {
-    accessUpdates = {
-      foundingVendor: false,
-      complimentaryPlan: false,
-      plan: "trial",
-      subscriptionType: "trial",
-      subscription: "trial",
-      subscriptionActive: true,
-      paymentStatus: "trialing",
-      accessType: "trial"
-    };
-  } else if (accessChoice === "cancelled") {
-    accessUpdates = {
-      foundingVendor: false,
-      complimentaryPlan: false,
-      plan: "cancelled",
-      subscriptionType: "cancelled",
-      subscription: "cancelled",
-      subscriptionActive: false,
-      paymentStatus: "cancelled",
-      accessType: ""
-    };
-  }
-  // "Unknown" intentionally produces no accessUpdates. Editing a profile must
-  // never downgrade or overwrite Stripe/payment state when the admin is not
-  // explicitly changing the customer's access type.
-
   await saveVendorUpdates({...imageFields(updated),coverImageUrl:newCover});
   }
 }
@@ -1219,6 +1168,56 @@ saveDetailsBtn.addEventListener("click", async () => {
   const resolvedCover  = selectedVendor.coverImageUrl || existingImages[0] || "";
   const existingProfileImg = selectedVendor.profileImageUrl || selectedVendor.profilePhotoUrl || "";
   const existingLogo       = selectedVendor.logoUrl || "";
+
+  const accessChoice = accessTypeInput.value;
+  let accessUpdates = {};
+  if (accessChoice === "free_forever") {
+    accessUpdates = {
+      foundingVendor: true,
+      complimentaryPlan: true,
+      plan: "complimentary",
+      subscriptionType: "complimentary",
+      subscription: "complimentary",
+      subscriptionActive: true,
+      paymentStatus: "free_link",
+      accessType: "complimentary-invite"
+    };
+  } else if (accessChoice === "paid") {
+    accessUpdates = {
+      foundingVendor: false,
+      complimentaryPlan: false,
+      plan: "paid",
+      subscriptionType: "paid",
+      subscription: "paid",
+      subscriptionActive: true,
+      paymentStatus: "paid",
+      accessType: ""
+    };
+  } else if (accessChoice === "trial") {
+    accessUpdates = {
+      foundingVendor: false,
+      complimentaryPlan: false,
+      plan: "trial",
+      subscriptionType: "trial",
+      subscription: "trial",
+      subscriptionActive: true,
+      paymentStatus: "trialing",
+      accessType: "trial"
+    };
+  } else if (accessChoice === "cancelled") {
+    accessUpdates = {
+      foundingVendor: false,
+      complimentaryPlan: false,
+      plan: "cancelled",
+      subscriptionType: "cancelled",
+      subscription: "cancelled",
+      subscriptionActive: false,
+      paymentStatus: "cancelled",
+      accessType: ""
+    };
+  }
+  // Unknown means preserve the existing Stripe/payment state. Profile edits
+  // must not silently downgrade a vendor when payment data has not synced yet.
 
   await saveVendorUpdates({
     businessName:     businessNameInput.value.trim(),
