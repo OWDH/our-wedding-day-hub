@@ -89,6 +89,7 @@
           <div class="contact-detail"><strong>For couples</strong><p>Questions about finding vendors, browsing categories, and discovering the right fit for your day.</p></div>
           <div class="contact-detail"><strong>For vendors</strong><p>Questions about joining, creating your profile, visibility, account support, or founding vendor access.</p></div>
           <div class="contact-detail"><strong>General support</strong><p>Help with enquiries, platform information, or anything else you need.</p></div>
+          <div class="contact-detail"><strong>Email support</strong><p><a href="mailto:robyn@ourweddingdayhub.com" style="color:inherit;">robyn@ourweddingdayhub.com</a></p></div>
         </div>
         <div class="contact-socials-wrap">
           <p class="contact-socials-title">Follow along</p>
@@ -138,12 +139,57 @@
 <script>
   const form = document.getElementById('contact-form');
   const successMessage = document.querySelector('.contact-success');
+  const SUPPORT_EMAIL = 'robyn@ourweddingdayhub.com';
+
+  function openEmailFallback(formData) {
+    const name = String(formData.get('name') || '').trim();
+    const email = String(formData.get('email') || '').trim();
+    const message = String(formData.get('message') || '').trim();
+    const subject = 'Our Wedding Day Hub enquiry' + (name ? ' from ' + name : '');
+    const body = [
+      'Name: ' + name,
+      'Email: ' + email,
+      '',
+      message
+    ].join('\n');
+    window.location.href = 'mailto:' + SUPPORT_EMAIL
+      + '?subject=' + encodeURIComponent(subject)
+      + '&body=' + encodeURIComponent(body);
+  }
+
   form.addEventListener('submit', async function(e) {
     e.preventDefault();
+    const submitButton = form.querySelector('button[type="submit"]');
     const formData = new FormData(form);
-    const response = await fetch(form.action, { method: form.method, body: formData, headers: { 'Accept': 'application/json' } });
-    if (response.ok) { form.reset(); successMessage.style.display = 'block'; }
-    else { alert('Oops! There was a problem sending your message.'); }
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+    }
+    successMessage.style.display = 'none';
+
+    try {
+      const response = await fetch(form.action, {
+        method: form.method,
+        body: formData,
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (!response.ok) throw new Error('Contact service returned HTTP ' + response.status);
+
+      form.reset();
+      successMessage.textContent = "Message sent — thank you, we'll be in touch soon ♡";
+      successMessage.style.display = 'block';
+    } catch (error) {
+      console.error('Contact form delivery failed:', error);
+      successMessage.innerHTML = 'The online form could not be delivered. Opening your email app so you can send the message directly to <a href="mailto:' + SUPPORT_EMAIL + '">' + SUPPORT_EMAIL + '</a>.';
+      successMessage.style.display = 'block';
+      openEmailFallback(formData);
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Send Message &#8594;';
+      }
+    }
   });
 </script>
 <script type="module" src="nav.js"></script>
