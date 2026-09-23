@@ -1088,7 +1088,58 @@ async function removeMediaUrl(type, url) {
     const updated=getCanonicalImages(selectedVendor).filter(u=>u!==url);
     const cur=selectedVendor.coverImageUrl||"";
     const newCover=(cur===url||!updated.includes(cur))?(updated[0]||""):cur;
-    await saveVendorUpdates({...imageFields(updated),coverImageUrl:newCover});
+    const accessChoice = accessTypeInput.value;
+  let accessUpdates = {};
+  if (accessChoice === "free_forever") {
+    accessUpdates = {
+      foundingVendor: true,
+      complimentaryPlan: true,
+      plan: "complimentary",
+      subscriptionType: "complimentary",
+      subscription: "complimentary",
+      subscriptionActive: true,
+      paymentStatus: "free_link",
+      accessType: "complimentary-invite"
+    };
+  } else if (accessChoice === "paid") {
+    accessUpdates = {
+      foundingVendor: false,
+      complimentaryPlan: false,
+      plan: "paid",
+      subscriptionType: "paid",
+      subscription: "paid",
+      subscriptionActive: true,
+      paymentStatus: "paid",
+      accessType: ""
+    };
+  } else if (accessChoice === "trial") {
+    accessUpdates = {
+      foundingVendor: false,
+      complimentaryPlan: false,
+      plan: "trial",
+      subscriptionType: "trial",
+      subscription: "trial",
+      subscriptionActive: true,
+      paymentStatus: "trialing",
+      accessType: "trial"
+    };
+  } else if (accessChoice === "cancelled") {
+    accessUpdates = {
+      foundingVendor: false,
+      complimentaryPlan: false,
+      plan: "cancelled",
+      subscriptionType: "cancelled",
+      subscription: "cancelled",
+      subscriptionActive: false,
+      paymentStatus: "cancelled",
+      accessType: ""
+    };
+  }
+  // "Unknown" intentionally produces no accessUpdates. Editing a profile must
+  // never downgrade or overwrite Stripe/payment state when the admin is not
+  // explicitly changing the customer's access type.
+
+  await saveVendorUpdates({...imageFields(updated),coverImageUrl:newCover});
   }
 }
 
@@ -1202,14 +1253,7 @@ saveDetailsBtn.addEventListener("click", async () => {
     published:        visible, profileVisible: visible,
     featured:         featuredInput.value==="true",
     shopAccess:       shopAccessInput.value==="true",
-    foundingVendor:   accessTypeInput.value==="free_forever",
-    complimentaryPlan:accessTypeInput.value==="free_forever",
-    plan:             accessTypeInput.value==="free_forever"?"complimentary":accessTypeInput.value,
-    subscriptionType: accessTypeInput.value==="free_forever"?"complimentary":accessTypeInput.value,
-    subscription:     accessTypeInput.value==="free_forever"?"complimentary":accessTypeInput.value,
-    subscriptionActive: accessTypeInput.value==="paid",
-    paymentStatus:    accessTypeInput.value==="free_forever"?"free_link":accessTypeInput.value,
-    accessType:       accessTypeInput.value==="free_forever"?"complimentary-invite":"",
+    ...accessUpdates,
     adminNotes:       adminNotesInput.value.trim(),
   });
 });
