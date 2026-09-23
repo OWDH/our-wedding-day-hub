@@ -442,6 +442,14 @@
     }
   }
 
+  const initialTier = new URLSearchParams(window.location.search).get('tier');
+  if (['edit','spotlight','feature','icon'].includes(initialTier)) {
+    state.tier = initialTier;
+    document.querySelectorAll('.tier-card').forEach((card) => {
+      card.classList.toggle('selected', card.dataset.tier === initialTier);
+    });
+  }
+
   window.setRole('vendor');
   applyCurrencyConversion();
 
