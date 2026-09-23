@@ -666,7 +666,7 @@
 import {
   auth, db, storage, onAuthStateChanged, signOut, doc, getDoc, setDoc, serverTimestamp,
   ref, uploadBytes, getDownloadURL, collection, addDoc, getDocs,
-  query, where, orderBy, deleteDoc, updateDoc, increment
+  query, where, orderBy, deleteDoc, updateDoc, increment, callFunctionsApi, isMissingFunctionsRoute
 } from "./firebase.js";
 import { onSnapshot } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
 import { updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
@@ -1009,12 +1009,45 @@ import { updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/
     }
     const userData = userSnap.data();
     const vendorSnap = await getDoc(doc(db, "vendors", uid));
-    const vd = vendorSnap.exists() ? vendorSnap.data() : {};
+    let vd = vendorSnap.exists() ? vendorSnap.data() : {};
 
     // ── PAYMENT GATE ──
-    // Block dashboard access unless paid, or a founding/free/complimentary account.
-    const isFoundingOrFree = vd.complimentaryPlan === true || vd.plan === "complimentary" || vd.accessType === "complimentary-invite" || vd.founding === true || vd.foundingVendor === true;
-    const hasPaid = vd.paymentStatus === "paid" || vd.subscriptionActive === true || vd.paidSetupFee === true;
+    // Treat local access flags as a fast path, but never send a returning vendor
+    // back to payment until the live membership API has had a chance to reconcile
+    // Stripe. This prevents stale Firestore flags from locking out paid vendors.
+    const paymentStatus = String(vd.paymentStatus || "").toLowerCase();
+    const stripeStatus = String(vd.stripeSubscriptionStatus || "").toLowerCase();
+    const isFoundingOrFree = vd.complimentaryPlan === true
+      || vd.plan === "complimentary"
+      || vd.accessType === "complimentary-invite"
+      || vd.founding === true
+      || vd.foundingVendor === true
+      || paymentStatus === "free_invite"
+      || paymentStatus === "free_link";
+    let hasPaid = paymentStatus === "paid"
+      || vd.subscriptionActive === true
+      || vd.paidSetupFee === true
+      || ["active", "trialing", "past_due"].includes(stripeStatus);
+
+    if (!isFoundingOrFree && !hasPaid) {
+      try {
+        const membership = await callFunctionsApi("/verify-membership", { user: currentUser });
+        if (membership && membership.access) {
+          hasPaid = true;
+          vd = {
+            ...vd,
+            paymentStatus: "paid",
+            subscriptionActive: true,
+            stripeSubscriptionStatus: membership.status || vd.stripeSubscriptionStatus || "active"
+          };
+        }
+      } catch (membershipErr) {
+        if (!isMissingFunctionsRoute(membershipErr)) {
+          console.warn("Live membership reconciliation failed:", membershipErr);
+        }
+      }
+    }
+
     if (!isFoundingOrFree && !hasPaid) {
       window.location.href = "payment-required.html";
       return;
