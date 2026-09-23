@@ -1,0 +1,111 @@
+name: OWDH Regression QA
+
+on:
+  push:
+    branches:
+      - qa-regression-20260923
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Membership unit tests
+        run: |
+          cd docs/functions
+          node --test membership.test.js
+
+      - name: Syntax-check critical inline JavaScript
+        run: |
+          python - <<'PY'
+          import re, pathlib, subprocess, sys
+          root=pathlib.Path("docs")
+          pages=["signup.html","pricing.html","login.html","dashboard.html","payment-required.html","payment-success.html","admin-vendors.html","contact.html","categories.html","index.html","vendor.html"]
+          checked=0
+          for page in pages:
+              text=(root/page).read_text(encoding="utf-8", errors="replace")
+              scripts=re.findall(r"<script(?:\\s+type=[\"']module[\"'])?[^>]*>(.*?)</script>", text, re.S|re.I)
+              for idx,code in enumerate(scripts,1):
+                  if not code.strip():
+                      continue
+                  suffix=".mjs" if ("import " in code or "export " in code) else ".js"
+                  p=pathlib.Path("/tmp")/f"owdh_{page.replace('.','_')}_{idx}{suffix}"
+                  p.write_text(code,encoding="utf-8")
+                  proc=subprocess.run(["node","--check",str(p)],capture_output=True,text=True)
+                  if proc.returncode:
+                      print(proc.stderr)
+                      raise SystemExit(f"Syntax check failed: {page} script {idx}")
+                  checked+=1
+          print(f"Syntax checks passed: {checked}")
+          PY
+
+      - name: Verify production Firebase POST routes
+        run: |
+          set -eu
+          base="https://us-central1-ourweddingdayhub.cloudfunctions.net/api"
+          assert_status() {
+            path="$1"
+            expected="$2"
+            body="$3"
+            code=$(curl -sS -o /tmp/owdh-api-response.txt -w "%{http_code}" -X POST "$base$path" -H "Content-Type: application/json" --data "$body")
+            echo "$path -> HTTP $code"
+            cat /tmp/owdh-api-response.txt || true
+            echo
+            test "$code" = "$expected"
+          }
+          assert_status "/verify-membership" "401" "{}"
+          assert_status "/create-checkout-session" "401" '{"plan":"signature"}'
+          assert_status "/confirm-checkout" "401" '{"sessionId":"cs_test_qa"}'
+          assert_status "/send-message-notification" "400" "{}"
+          assert_status "/send-enquiry-notification" "400" "{}"
+
+      - name: Five-pass production page regression
+        run: |
+          set -eu
+          for n in 1 2 3 4 5; do
+            echo "Production pass $n"
+            q="qa=$GITHUB_RUN_ID-$n"
+            curl -fsSL -H "Cache-Control: no-cache" "https://ourweddingdayhub.com/pricing.html?$q" | grep -F "signup.html?tier=spotlight" >/dev/null
+            curl -fsSL -H "Cache-Control: no-cache" "https://ourweddingdayhub.com/signup.html?tier=spotlight&$q" | grep -F "const initialTier" >/dev/null
+            curl -fsSL -H "Cache-Control: no-cache" "https://ourweddingdayhub.com/dashboard.html?$q" | grep -F "/verify-membership" >/dev/null
+            curl -fsSL -H "Cache-Control: no-cache" "https://ourweddingdayhub.com/payment-required.html?$q" | grep -F "savedTier" >/dev/null
+            curl -fsSL -H "Cache-Control: no-cache" "https://ourweddingdayhub.com/admin-vendors.html?$q" | grep -F "Preserve current payment state" >/dev/null
+            curl -fsSL -H "Cache-Control: no-cache" "https://ourweddingdayhub.com/contact.html?$q" | grep -F "robyn@ourweddingdayhub.com" >/dev/null
+          done
+
+      - name: Firebase vendor data integrity audit
+        run: |
+          set -eu
+          curl -fsSL "https://firestore.googleapis.com/v1/projects/ourweddingdayhub/databases/(default)/documents/vendors?pageSize=300&key=AIzaSyDQ2gwuJoe2si8xYfhB6n9mESfSon4zRq8" > /tmp/vendors.json
+          python - <<'PY'
+          import json
+          data=json.load(open("/tmp/vendors.json",encoding="utf-8"))
+          docs=data.get("documents",[])
+          def val(v):
+              if not v: return None
+              for k in ("stringValue","booleanValue","integerValue","doubleValue","timestampValue"):
+                  if k in v: return v[k]
+              if "nullValue" in v: return None
+              if "arrayValue" in v: return [val(x) for x in v["arrayValue"].get("values",[])]
+              return None
+          def obj(d):
+              out={"id":d["name"].split("/")[-1]}
+              for k,v in d.get("fields",{}).items(): out[k]=val(v)
+              return out
+          vendors=[obj(d) for d in docs]
+          ray=next((v for v in vendors if "ray solo" in str(v.get("businessName","")).lower()),None)
+          if not ray:
+              raise SystemExit("Ray Solo vendor record not found")
+          if ray.get("membershipTier") != "spotlight":
+              raise SystemExit(f"Unexpected Ray tier: {ray.get('membershipTier')}")
+          if not (ray.get("published") is True and ray.get("profileVisible") is True):
+              raise SystemExit("Ray Solo is not live/visible in Firestore")
+          conflicts=[v for v in vendors if v.get("published") is not None and v.get("profileVisible") is not None and v.get("published") != v.get("profileVisible")]
+          if conflicts:
+              raise SystemExit(f"Visibility flag conflicts found: {[(v.get('businessName'),v['id']) for v in conflicts]}")
+          print(f"Vendor documents checked: {len(vendors)}")
+          print("Ray Solo: live, visible, Spotlight tier")
+          print("Visibility flag conflicts: 0")
+          PY
