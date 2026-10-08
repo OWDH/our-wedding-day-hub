@@ -339,7 +339,16 @@ app.post("/confirm-checkout", async (req, res) => {
       return res.json({ access: false, status: session.status, payment_status: session.payment_status });
     }
     const result = await applyGrantFromSession(session, decoded.uid);
-    res.json({ access: result.access, source: "checkout_session" });
+    res.json({
+      access: result.access,
+      verified: true,
+      source: "checkout_session",
+      session_id: session.id,
+      payment_status: session.payment_status,
+      amount_total: Number(session.amount_total || 0),
+      currency: String(session.currency || "aud").toUpperCase(),
+      plan: normalizePlan(session.metadata && session.metadata.plan)
+    });
   } catch (error) {
     if (error.status === 401) return res.status(401).json({ error: "Sign in required." });
     console.error("confirm-checkout error:", error);
