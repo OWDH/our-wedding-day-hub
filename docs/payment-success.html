@@ -116,10 +116,12 @@
   }
 
   async function trackVerifiedPurchase(confirmation) {
-    if (!confirmation || !confirmation.verified) return false;
+    if (!confirmation || confirmation.verified !== true || confirmation.payment_status !== "paid") return false;
 
-    const verifiedSessionId = String(confirmation.session_id || sessionId || "");
-    if (!verifiedSessionId.startsWith("cs_")) return false;
+    const verifiedSessionId = String(confirmation.session_id || "");
+    const verifiedAmountCents = Number(confirmation.amount_total);
+    if (!verifiedSessionId.startsWith("cs_") || verifiedSessionId !== sessionId) return false;
+    if (!Number.isFinite(verifiedAmountCents) || verifiedAmountCents <= 0) return false;
 
     const dedupeKey = PURCHASE_DEDUPE_PREFIX + verifiedSessionId;
     if (hasTrackedPurchase(dedupeKey)) return true;
@@ -170,8 +172,8 @@
           return {
             ...confirmed,
             ok: true,
-            verified: true,
-            session_id: confirmed.session_id || sessionId
+            verified: confirmed.verified === true,
+            session_id: confirmed.session_id || ""
           };
         }
       }
@@ -184,9 +186,9 @@
     try {
       const membership = await callFunctionsApi("/verify-membership", { user });
       if (membership && membership.access) {
-        const verifiedCurrentCheckout =
-          sessionId.indexOf("cs_") === 0 &&
-          (membership.source === "checkout_session" || membership.source === "subscription");
+        // Membership access does not prove payment for this Checkout Session.
+        // Only /confirm-checkout may authorise a Purchase event.
+        const verifiedCurrentCheckout = false;
         return {
           ...membership,
           ok: true,
