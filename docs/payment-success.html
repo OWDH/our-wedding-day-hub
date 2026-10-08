@@ -94,6 +94,71 @@
     return true;
   }
 
+  const PURCHASE_DEDUPE_PREFIX = "owdh_meta_purchase:";
+
+  function hasTrackedPurchase(key) {
+    try { return window.localStorage.getItem(key) === "1"; }
+    catch (_) { return false; }
+  }
+
+  function rememberTrackedPurchase(key) {
+    try { window.localStorage.setItem(key, "1"); }
+    catch (_) { /* Browser storage can be unavailable in privacy modes. */ }
+  }
+
+  async function waitForPurchaseTracker(timeoutMs = 1500) {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      if ((window.zaraz && typeof window.zaraz.track === "function") || typeof window.fbq === "function") return true;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return false;
+  }
+
+  async function trackVerifiedPurchase(confirmation) {
+    if (!confirmation || !confirmation.verified) return false;
+
+    const verifiedSessionId = String(confirmation.session_id || sessionId || "");
+    if (!verifiedSessionId.startsWith("cs_")) return false;
+
+    const dedupeKey = PURCHASE_DEDUPE_PREFIX + verifiedSessionId;
+    if (hasTrackedPurchase(dedupeKey)) return true;
+
+    await waitForPurchaseTracker();
+
+    const eventId = "owdh_" + verifiedSessionId;
+    const amountCents = Number(confirmation.amount_total || 0);
+    const value = amountCents > 0 ? amountCents / 100 : 0;
+    const currency = String(confirmation.currency || "AUD").toUpperCase();
+    const eventData = {
+      currency,
+      registration_type: "vendor",
+      content_type: "product",
+      content_name: confirmation.plan ? "OWDH " + confirmation.plan + " Membership" : "OWDH Vendor Membership",
+      event_id: eventId
+    };
+    if (Number.isFinite(value) && value > 0) eventData.value = value;
+
+    try {
+      if (window.zaraz && typeof window.zaraz.track === "function") {
+        await Promise.resolve(window.zaraz.track("Purchase", eventData));
+        rememberTrackedPurchase(dedupeKey);
+        return true;
+      }
+
+      if (typeof window.fbq === "function") {
+        const metaData = { ...eventData };
+        delete metaData.event_id;
+        window.fbq("track", "Purchase", metaData, { eventID: eventId });
+        rememberTrackedPurchase(dedupeKey);
+        return true;
+      }
+    } catch (err) {
+      console.warn("Verified Meta Purchase tracking failed:", err);
+    }
+    return false;
+  }
+
   async function confirmWithStripe(user) {
     try {
       if (sessionId.indexOf("cs_") === 0) {
@@ -101,7 +166,14 @@
           user,
           body: { sessionId }
         });
-        if (confirmed && confirmed.access) return true;
+        if (confirmed && confirmed.access) {
+          return {
+            ...confirmed,
+            ok: true,
+            verified: true,
+            session_id: confirmed.session_id || sessionId
+          };
+        }
       }
     } catch (err) {
       if (!isMissingFunctionsRoute(err) && err.status !== 404) {
@@ -111,38 +183,53 @@
 
     try {
       const membership = await callFunctionsApi("/verify-membership", { user });
-      if (membership && membership.access) return true;
+      if (membership && membership.access) {
+        const verifiedCurrentCheckout =
+          sessionId.indexOf("cs_") === 0 &&
+          (membership.source === "checkout_session" || membership.source === "subscription");
+        return {
+          ...membership,
+          ok: true,
+          verified: verifiedCurrentCheckout,
+          session_id: verifiedCurrentCheckout ? sessionId : ""
+        };
+      }
     } catch (err) {
       if (!isMissingFunctionsRoute(err) && err.status !== 404) {
         console.warn("verify-membership failed:", err);
       }
     }
 
-    // Deployed functions still only create Checkout Sessions. Stripe sends
-    // vendors back here with paid=true / session_id; write the same paid
-    // flags the dashboard already checks so access unlocks immediately.
+    // Keep the existing access fallback until the current Stripe verification
+    // functions are deployed everywhere. It must never create a Meta Purchase.
     if (cameFromStripe) {
-      return markVendorPaidLocal(user.uid);
+      await markVendorPaidLocal(user.uid);
+      return { ok: true, verified: false, source: "local_fallback" };
     }
-    return false;
+    return { ok: false, verified: false, source: "unconfirmed" };
   }
 
   onAuthStateChanged(auth, async function(user) {
     if (!user) {
       showError("Please log in so we can attach this payment to your vendor account.");
       successBtn.href = "login.html";
-      successBtn.textContent = "Log in \u2192";
+      successBtn.textContent = "Log in \\u2192";
       return;
     }
     try {
-      const ok = await confirmWithStripe(user);
-      if (ok) showSuccess();
-      else showError("Stripe has your payment, but membership is still activating. Open your dashboard in a moment, or contact support if it stays locked.");
+      const confirmation = await confirmWithStripe(user);
+      if (confirmation.ok) {
+        await trackVerifiedPurchase(confirmation);
+        showSuccess();
+      } else {
+        showError("Stripe has your payment, but membership is still activating. Open your dashboard in a moment, or contact support if it stays locked.");
+      }
     } catch (err) {
       console.error("Payment confirmation error:", err);
       showError(err.message || "Something went wrong confirming your payment. Please contact support and we'll fix this for you.");
     }
   });
+
 </script>
 
 <script type="module" src="nav.js"></script>
