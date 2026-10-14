@@ -33,6 +33,8 @@ jobs:
       - name: Regression tests
         run: npm test
         working-directory: docs/functions
+      - name: Check Stripe secret metadata access
+        run: gcloud secrets versions describe latest --secret=STRIPE_SECRET_KEY --project=ourweddingdayhub --format='value(state)'
       - name: Read-only Stripe and vendor audit
         run: node reconcile-vendors.js
         working-directory: docs/functions
