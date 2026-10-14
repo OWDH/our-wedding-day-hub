@@ -26,7 +26,13 @@ cd functions
 node check-membership-deployment.js
 ```
 
-Confirm the Stripe webhook destination and event subscriptions match the deployed handler. Existing function secret bindings are retained. Check deployed Firestore rules prevent ordinary vendors from writing membership/payment flags or granting complimentary access. The rules are not present in this repository, so their current enforcement is not verified by these tests.
+Confirm the Stripe webhook destination and event subscriptions match the deployed handler. Existing function secret bindings are retained. Check deployed Firestore rules prevent ordinary vendors from writing membership/payment flags or granting complimentary access. The production rules captured in `docs/firestore.rules` were published on 14 October. Owner updates to billing/access fields were denied in the Firebase rules simulator, while administrator updates and public reads were allowed. This narrowly protects updates; owner create/delete permissions retain existing behaviour and need a separate lifecycle review. Rules changes are not covered by the 38 Node tests.
+
+## Live recovery status (14 October 2026)
+
+Two affected vendor records were matched against their user identities and the supplied successful payment and active subscription exports. Their payment status, active flag and Stripe identifiers were repaired and read back in the Firebase console. One vendor profile email typo was corrected to match the existing login and Stripe identity. No Stripe transactions or publication/approval flags were changed. These repairs do not establish successful vendor login or a completed end-to-end checkout test.
+
+The console inventory contains 148 users and 139 vendors. Query grid columns are virtualised, so missing extracted keys cannot establish missing database fields. All 11 exported active subscriptions match a unique normalised user email and an existing vendor UID; complete document checks remain required before further writes. Export absence cannot establish cancellation or justify revoking access. Private inventories and payment exports must remain outside Git.
 
 ## Vendor and customer reconciliation
 
@@ -39,7 +45,7 @@ node reconcile-vendors.js
 
 The default is read-only. It inventories all vendor and user documents and paginates all Stripe customers, subscriptions Checkout Sessions and invoices. It matches Firebase UID, Stripe IDs and normalised account email, and checks actual membership price IDs. Reports are private, ignored by Git and contain the proposed patch and original payment fields.
 
-Review the report, including Mandi (`W4r3TXY2ieUMYLdJ1zv4aoUvmnj2`) and Ray (`GmuCJTHa0uOlZXK7O7cIc42WOzA2`). Then run:
+Review the report, including both reported affected vendors. Then run:
 
 ```sh
 node reconcile-vendors.js --apply
