@@ -6,15 +6,19 @@ const fs = require("node:fs");
 const membership = require("./membership");
 
 // Execute the real route handlers with Stripe/Firestore boundaries stubbed.
-function loadApi({ vendor = {}, stripeError = false, stripeOverrides = {}, resendResult = { data: { id: "email_test" } }, onWrite = () => {} } = {}) {
+function loadApi({ vendor = {}, userRole = "vendor", stripeError = false, stripeOverrides = {}, resendResult = { data: { id: "email_test" } }, onWrite = () => {} } = {}) {
   const routes = {};
   const app = { use() {}, post(name, handler) { routes[name] = handler; }, get(name, handler) { routes[name] = handler; } };
   const doc = { get: async () => ({ exists: true, data: () => vendor }), set: async (value) => { onWrite(value); } };
-  const db = { collection: () => ({ doc: () => doc }) };
+  const userDoc = { get: async () => ({ exists: true, data: () => ({ role: userRole }) }) };
+  const db = { collection: name => ({ doc: () => name === "users" ? userDoc : doc }) };
   const admin = { initializeApp() {}, firestore: () => db, auth: () => ({ verifyIdToken: async () => ({ uid: "mandi", email: "m@example.test" }) }) };
   admin.firestore.FieldValue = { serverTimestamp: () => "timestamp" };
   function Stripe() {
-    return { customers: { list: async function* () { if (stripeError) throw new Error("Stripe unavailable"); } }, ...stripeOverrides };
+    return { customers: { list: async function* () { if (stripeError) throw new Error("Stripe unavailable"); } },
+      prices: { retrieve: async id => id === membership.PRICE_IDS.setup
+        ? { active: true, currency: "aud", unit_amount: 5000 }
+        : { active: true, currency: "aud", unit_amount: 1725, recurring: { interval: "month", interval_count: 1 } } }, ...stripeOverrides };
   }
   const modules = {
     "firebase-functions/v2/https": { onRequest: (_opts, fn) => fn },
@@ -127,4 +131,13 @@ test("notification provider errors never report successful delivery", async () =
   assert.equal(message.code, 500);
   assert.equal(enquiry.body.success, undefined);
   assert.equal(message.body.success, undefined);
+});
+
+
+test("couple accounts cannot obtain or reconcile vendor membership", async () => {
+  const api = loadApi({ userRole: "couple", stripeError: true });
+  for (const route of ["/create-checkout-session", "/confirm-checkout", "/verify-membership"]) {
+    const result = await invoke(api[route], true, { plan: "feature", sessionId: "cs_test" });
+    assert.equal(result.code, 403);
+  }
 });
