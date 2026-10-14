@@ -26,7 +26,7 @@ cd functions
 node check-membership-deployment.js
 ```
 
-Confirm the Stripe webhook destination and event subscriptions match the deployed handler. Existing function secret bindings are retained. Check deployed Firestore rules prevent ordinary vendors from writing membership/payment flags or granting complimentary access. The production rules captured in `docs/firestore.rules` were published on 14 October. Owner updates to billing/access fields were denied in the Firebase rules simulator, while administrator updates and public reads were allowed. This narrowly protects updates; owner create/delete permissions retain existing behaviour and need a separate lifecycle review. Rules changes are not covered by the 38 Node tests.
+Confirm the Stripe webhook destination and event subscriptions match the deployed handler. Existing function secret bindings are retained. Check deployed Firestore rules prevent ordinary vendors from writing membership/payment flags or granting complimentary access. The production rules were published on 14 October. The full rules capture is retained privately and is not included in this public repository. Owner updates to billing/access fields were denied in the Firebase rules simulator, while administrator updates and public reads were allowed. This narrowly protects updates; owner create/delete permissions retain existing behaviour and need a separate lifecycle review. Rules changes are not covered by the 38 Node tests.
 
 ## Live recovery status (14 October 2026)
 
