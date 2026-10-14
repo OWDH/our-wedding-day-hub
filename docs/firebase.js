@@ -119,6 +119,7 @@ async function ensureSignupDocument(reference, initialData) {
     transaction.set(reference, initialData);
     return true;
   });
+}
 
 export {
   app,
