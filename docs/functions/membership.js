@@ -15,6 +15,16 @@ const PRICE_IDS = {
   icon: "price_1TGp2pIfhRO5Mn4B3lrSq0Dj"
 };
 
+// Additional live recurring prices evidenced by the 14 October 2026 Stripe
+// subscription export. Retain existing prices for legacy memberships. This
+// recognition list does not change the prices used to create new checkouts.
+const EXPORTED_MEMBERSHIP_PRICES = {
+  price_1U0a7yIfhRO5Mn4BnUZjUwtJ: "edit",
+  price_1U0a7MIfhRO5Mn4B8ySS16FY: "spotlight",
+  price_1U0a6eIfhRO5Mn4B4dMrAkhr: "feature",
+  price_1U0a5rIfhRO5Mn4Bl8KEfFXc: "icon"
+};
+
 const PLAN_ALIASES = {
   classic: "edit",
   signature: "spotlight",
@@ -159,7 +169,11 @@ function nextCheckoutAttempt(vendor, existingSession) {
 // A subscription must contain an actual OWDH recurring price, not just metadata.
 function membershipPlanFromSubscription(subscription) {
   const plans = new Set(((subscription.items && subscription.items.data) || [])
-    .map(item => Object.keys(PRICE_IDS).find(plan => plan !== "setup" && PRICE_IDS[plan] === stripeObjectId(item.price)))
+    .map(item => {
+      const priceId = stripeObjectId(item.price);
+      return EXPORTED_MEMBERSHIP_PRICES[priceId]
+        || Object.keys(PRICE_IDS).find(plan => plan !== "setup" && PRICE_IDS[plan] === priceId);
+    })
     .filter(Boolean));
   return plans.size === 1 ? [...plans][0] : "";
 }
