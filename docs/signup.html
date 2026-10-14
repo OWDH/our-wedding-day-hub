@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-signup-build="20260911-2">
+<html lang="en" data-signup-build="20261014-1">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -142,7 +142,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '20260911-2';
+  const BUILD = '20261014-1';
   const state = {
     role: 'vendor',
     tier: 'edit',
@@ -350,14 +350,10 @@
           return;
         }
 
-        // Profile writes are attempted twice, but a temporary Firestore write
-        // issue must not strand a newly-created vendor before payment.
-        try {
-          await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
-          await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
-        } catch (profileError) {
-          console.warn('Vendor account created but profile write is pending.', profileError);
-        }
+        // Confirm profile creation before taking payment. Retrying is safe:
+        // existing documents and payment fields are never replaced.
+        await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
+        await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
 
         message('Account created! Redirecting you to payment...');
         const apiPlan = { edit: 'classic', spotlight: 'signature', feature: 'elite', icon: 'platinum' }[finalTier] || finalTier;
