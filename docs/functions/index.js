@@ -12,6 +12,7 @@ const os = require("os");
 const fs = require("fs");
 const {
   PRICE_IDS,
+  checkoutPriceMatches,
   membershipPlanFromSubscription,
   sessionBelongsToVendor,
   canReuseCheckout,
@@ -178,6 +179,17 @@ async function findVendorUid({ uid, customerId, subscriptionId, email }) {
   return "";
 }
 
+async function requireVendorAccount(uid) {
+  const [user, vendor] = await Promise.all([
+    db.collection("users").doc(uid).get(), db.collection("vendors").doc(uid).get()
+  ]);
+  if (!user.exists || user.data().role !== "vendor" || !vendor.exists) {
+    const error = new Error("A vendor account is required. Please contact support.");
+    error.status = 403;
+    throw error;
+  }
+}
+
 async function findLiveSubscription(stripe, { customerId, email, uid }) {
   const customers = new Set(customerId ? [customerId] : []);
   const normalisedEmail = String(email || "").trim().toLowerCase();
@@ -205,6 +217,7 @@ async function applyGrantFromSession(session, fallbackUid) {
     email: customerEmailFromStripeObject(session)
   });
   if (!uid) throw new Error("Checkout session is missing vendor id.");
+  await requireVendorAccount(uid);
   if (session.mode !== "subscription" || !sessionGrantsAccess(session)) throw new Error("Not a completed membership checkout.");
   let subscriptionStatus = "";
   const subscriptionId = stripeObjectId(session.subscription);
@@ -255,6 +268,7 @@ async function applySubscriptionUpdate(subscription, fallbackUid) {
     email
   });
   if (!uid) return;
+  await requireVendorAccount(uid);
   const vendorRef = db.collection("vendors").doc(uid);
   const vendorSnap = await vendorRef.get();
   const vendor = vendorSnap.exists ? vendorSnap.data() : {};
@@ -273,6 +287,7 @@ app.post("/create-checkout-session", async (req, res) => {
   try {
     const decoded = await requireFirebaseUser(req);
     const uid = decoded.uid;
+    await requireVendorAccount(uid);
     const plan = normalizePlan(req.body && req.body.plan);
     const planPriceId = resolvePlanPriceId(plan);
     if (!planPriceId) return res.status(400).json({ error: "Invalid plan selected." });
@@ -319,6 +334,12 @@ app.post("/create-checkout-session", async (req, res) => {
     }
     const attempt = nextCheckoutAttempt(vendor, existingSession);
     const idempotencyKey = checkoutIdempotencyKey(uid, plan, attempt);
+    const [setupPrice, recurringPrice] = await Promise.all([
+      stripe.prices.retrieve(PRICE_IDS.setup), stripe.prices.retrieve(planPriceId)
+    ]);
+    if (!checkoutPriceMatches("setup", setupPrice) || !checkoutPriceMatches(plan, recurringPrice)) {
+      return res.status(503).json({ error: "The selected plan's price needs verification. Please contact support before paying." });
+    }
     let session;
     try {
       session = await stripe.checkout.sessions.create({
@@ -329,7 +350,7 @@ app.post("/create-checkout-session", async (req, res) => {
         success_url: `${SITE_URL}/payment-success.html?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${SITE_URL}/payment-required.html`,
         allow_promotion_codes: true,
-        metadata: { firebaseUid: uid, plan },
+        metadata: { firebaseUid: uid, plan, recurringPriceId: planPriceId },
         subscription_data: { metadata: { firebaseUid: uid, plan } }
       }, { idempotencyKey });
     } catch (createError) {
@@ -347,7 +368,7 @@ app.post("/create-checkout-session", async (req, res) => {
     }, { merge: true });
     res.json({ url: session.url });
   } catch (error) {
-    if (error.status === 401) return res.status(401).json({ error: "Sign in required." });
+    if (error.status === 401 || error.status === 403) return res.status(error.status).json({ error: error.message });
     console.error("Stripe session error:", error);
     res.status(503).json({ error: "Payment is not available right now. Please try again before making another payment." });
   }
@@ -356,6 +377,7 @@ app.post("/create-checkout-session", async (req, res) => {
 app.post("/confirm-checkout", async (req, res) => {
   try {
     const decoded = await requireFirebaseUser(req);
+    await requireVendorAccount(decoded.uid);
     const sessionId = req.body && req.body.sessionId;
     if (!sessionId || typeof sessionId !== "string" || !sessionId.startsWith("cs_")) return res.status(400).json({ error: "Missing checkout session." });
     const session = await getStripe().checkout.sessions.retrieve(sessionId);
@@ -376,7 +398,7 @@ app.post("/confirm-checkout", async (req, res) => {
       plan: normalizePlan(session.metadata && session.metadata.plan)
     });
   } catch (error) {
-    if (error.status === 401) return res.status(401).json({ error: "Sign in required." });
+    if (error.status === 401 || error.status === 403) return res.status(error.status).json({ error: error.message });
     console.error("confirm-checkout error:", error);
     res.status(500).json({ error: "Unable to confirm payment." });
   }
@@ -385,6 +407,7 @@ app.post("/confirm-checkout", async (req, res) => {
 app.post("/verify-membership", async (req, res) => {
   try {
     const decoded = await requireFirebaseUser(req);
+    await requireVendorAccount(decoded.uid);
     const vendorRef = db.collection("vendors").doc(decoded.uid);
     const vendorSnap = await vendorRef.get();
     const vendor = vendorSnap.exists ? vendorSnap.data() : {};
@@ -409,7 +432,7 @@ app.post("/verify-membership", async (req, res) => {
     }
     res.json({ access: false, source: "none", status: vendor.stripeSubscriptionStatus || vendor.paymentStatus || "unpaid" });
   } catch (error) {
-    if (error.status === 401) return res.status(401).json({ error: "Sign in required." });
+    if (error.status === 401 || error.status === 403) return res.status(error.status).json({ error: error.message });
     console.error("verify-membership error:", error);
     res.status(503).json({ error: "Membership verification is temporarily unavailable. Please retry before making another payment." });
   }
