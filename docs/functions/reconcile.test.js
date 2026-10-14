@@ -61,3 +61,18 @@ test("an active subscription without captured invoice payment is never labelled 
   assert.equal(plan(undefined, undefined, undefined, undefined, undefined, [{ ...invoice, amount_paid: 0 }]).vendors[0].decision, "review");
   assert.equal(plan().vendors[0].patch.paidSetupFee, undefined);
 });
+
+test("current exported recurring prices and legacy memberships are recognised", () => {
+  const cases = [
+    ["price_1U0a7yIfhRO5Mn4BnUZjUwtJ", "edit"],
+    ["price_1U0a7MIfhRO5Mn4B8ySS16FY", "spotlight"],
+    ["price_1U0a6eIfhRO5Mn4B4dMrAkhr", "feature"],
+    ["price_1U0a5rIfhRO5Mn4Bl8KEfFXc", "icon"]
+  ];
+  for (const [id, plan] of cases) {
+    assert.equal(membershipPlanFromSubscription({ items: { data: [{ price: { id } }] } }), plan);
+  }
+  assert.equal(membershipPlanFromSubscription({ items: { data: [
+    { price: { id: cases[0][0] } }, { price: { id: cases[1][0] } }
+  ] } }), "");
+});
