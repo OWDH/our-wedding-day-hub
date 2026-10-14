@@ -33,6 +33,25 @@ jobs:
       - name: Regression tests
         run: npm test
         working-directory: docs/functions
+      - name: Check existing function read access
+        continue-on-error: true
+        run: gcloud functions describe api --gen2 --region=us-central1 --project=ourweddingdayhub --format='value(name)'
+      - name: Read-only vendor database inventory
+        working-directory: docs/functions
+        run: |
+          node <<'NODE'
+          const admin = require('firebase-admin');
+          admin.initializeApp({projectId: 'ourweddingdayhub'});
+          const db = admin.firestore();
+          Promise.all([db.collection('vendors').get(),db.collection('users').get()]).then(([v,u])=>{
+            const counts = {};
+            for(const doc of v.docs) {
+              const d=doc.data(); const status=d.paymentStatus || 'missing';
+              counts[status]=(counts[status]||0)+1;
+            }
+            console.log(JSON.stringify({vendorRecords:v.size,userRecords:u.size,paymentStatuses:counts}));
+          }).catch(e=>{console.error('Inventory unavailable; code:',e.code);process.exitCode=1;});
+          NODE
       - name: Check Stripe secret read permission without outputting its value
         run: gcloud secrets versions access latest --secret=STRIPE_SECRET_KEY --project=ourweddingdayhub > /dev/null
       - name: Read-only Stripe and vendor audit
