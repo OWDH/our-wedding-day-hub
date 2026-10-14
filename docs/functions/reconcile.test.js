@@ -6,8 +6,9 @@ const { PRICE_IDS, membershipPlanFromSubscription, sessionBelongsToVendor, canRe
 const vendor = { id: "mandi", businessName: "Married by Mandi", email: "m@example.test", paymentStatus: "pending" };
 const user = { id: "mandi", email: vendor.email, role: "vendor" };
 const customer = { id: "cus_m", email: vendor.email };
-const subscription = { id: "sub_m", customer: customer.id, status: "active", items: { data: [{ price: { id: PRICE_IDS.spotlight } }] } };
-const plan = (vendors = [vendor], users = [user], customers = [customer], subs = [subscription], sessions = []) => planReconciliation(vendors, users, customers, subs, sessions);
+const subscription = { id: "sub_m", customer: customer.id, status: "active", latest_invoice: "in_m", items: { data: [{ price: { id: PRICE_IDS.spotlight } }] } };
+const invoice = { id: "in_m", subscription: "sub_m", status: "paid", amount_paid: 1595, currency: "aud", lines: { data: [] } };
+const plan = (vendors = [vendor], users = [user], customers = [customer], subs = [subscription], sessions = [], invoices = [invoice]) => planReconciliation(vendors, users, customers, subs, sessions, invoices);
 
 test("verified email and actual membership price produce a targeted repair", () => {
   const row = plan().vendors[0];
@@ -53,4 +54,10 @@ test("checkout reuse requires the same tier and cancellation clears access flags
   assert.equal(canReuseCheckout(session, "edit"), true);
   assert.equal(canReuseCheckout(session, "spotlight"), false);
   assert.equal(revokeMembershipPatch("canceled").paidSetupFee, false);
+});
+
+test("an active subscription without captured invoice payment is never labelled paid", () => {
+  assert.equal(plan(undefined, undefined, undefined, undefined, undefined, []).vendors[0].decision, "review");
+  assert.equal(plan(undefined, undefined, undefined, undefined, undefined, [{ ...invoice, amount_paid: 0 }]).vendors[0].decision, "review");
+  assert.equal(plan().vendors[0].patch.paidSetupFee, undefined);
 });

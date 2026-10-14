@@ -27,7 +27,7 @@ cd docs/functions
 node reconcile-vendors.js
 ```
 
-The default is read-only. It inventories all vendor and user documents and paginates all Stripe customers, subscriptions and Checkout Sessions. It matches Firebase UID, Stripe IDs and normalised account email, and checks actual membership price IDs. Reports are private, ignored by Git and contain the proposed patch and original payment fields.
+The default is read-only. It inventories all vendor and user documents and paginates all Stripe customers, subscriptions Checkout Sessions and invoices. It matches Firebase UID, Stripe IDs and normalised account email, and checks actual membership price IDs. Reports are private, ignored by Git and contain the proposed patch and original payment fields.
 
 Review the report, including Mandi (`W4r3TXY2ieUMYLdJ1zv4aoUvmnj2`) and Ray (`GmuCJTHa0uOlZXK7O7cIc42WOzA2`). Then run:
 
@@ -35,7 +35,7 @@ Review the report, including Mandi (`W4r3TXY2ieUMYLdJ1zv4aoUvmnj2`) and Ray (`Gm
 node reconcile-vendors.js --apply
 ```
 
-Apply performs a fresh inventory and only updates unique, verified current OWDH subscriptions. Each subscription is rechecked and each vendor write has a Firestore version precondition. Complimentary and restricted accounts are preserved. Ambiguous identities, missing user records, inactive memberships and unmatched Stripe subscriptions require manual review. The script never charges, cancels, deletes, publishes profiles or automatically revokes existing access. Couple accounts are inventoried but not assigned vendor billing states.
+Apply performs a fresh inventory and only updates unique, verified active OWDH subscriptions whose current invoice has a successful, non-zero payment. Setup-payment flags are only set when a paid invoice contains the actual setup price. Each subscription is rechecked and each vendor write has a Firestore version precondition. Complimentary and restricted accounts are preserved. Ambiguous identities, missing user records, inactive memberships and unmatched Stripe subscriptions require manual review. The script never charges, cancels, deletes, publishes profiles or automatically revokes existing access. Couple accounts are inventoried but not assigned vendor billing states.
 
 ## Verification after deployment
 

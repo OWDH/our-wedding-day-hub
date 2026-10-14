@@ -1,12 +1,12 @@
 "use strict";
 
 const { membershipPlanFromSubscription, subscriptionGrantsAccess, stripeObjectId,
-  uidFromStripeObject, isComplimentaryVendor, grantMembershipPatch } = require("./membership");
+  uidFromStripeObject, isComplimentaryVendor, grantMembershipPatch, invoiceSubscriptionId, PRICE_IDS } = require("./membership");
 
 const emailKey = value => String(value || "").trim().toLowerCase();
 
 // Pure planning step. An ambiguous match never becomes a write.
-function planReconciliation(vendors, users, customers, subscriptions, sessions) {
+function planReconciliation(vendors, users, customers, subscriptions, sessions, invoices = []) {
   const rows = [];
   const matchedCustomers = new Set();
   for (const vendor of vendors) {
@@ -39,14 +39,22 @@ function planReconciliation(vendors, users, customers, subscriptions, sessions) 
     else if (vendor.accountStatus && vendor.accountStatus !== "active") row.reason = "Account restricted; preserve restriction.";
     else if (active.length === 1) {
       const sub = active[0];
+      const paidInvoices = invoices.filter(i => invoiceSubscriptionId(i) === sub.id && i.status === "paid" && Number(i.amount_paid) > 0);
+      const latestInvoiceId = stripeObjectId(sub.latest_invoice);
+      const latestPaid = sub.status === "active" && paidInvoices.some(i => i.id === latestInvoiceId);
       // A customer cannot belong to two vendor records, even when email differs.
       const duplicate = vendors.some(v => v.id !== vendor.id && (v.stripeSubscriptionId === sub.id
         || v.stripeCustomerId === stripeObjectId(sub.customer)))
         || sessions.some(s => stripeObjectId(s.subscription) === sub.id && uidFromStripeObject(s) && uidFromStripeObject(s) !== vendor.id);
-      if (duplicate) row.reason = "Stripe identifiers belong to another vendor; manual review required.";
+      if (!latestPaid) row.reason = "Membership exists, but a current successful payment is not verified; review invoices before marking paid.";
+      else if (duplicate) row.reason = "Stripe identifiers belong to another vendor; manual review required.";
       else {
         row.patch = grantMembershipPatch({ customerId: stripeObjectId(sub.customer), subscriptionId: sub.id,
           plan: membershipPlanFromSubscription(sub), subscriptionStatus: sub.status });
+        const setupPaid = paidInvoices.some(i => ((i.lines && i.lines.data) || []).some(line =>
+          Number(line.amount) > 0 && (stripeObjectId(line.price) || (line.pricing && line.pricing.price_details && line.pricing.price_details.price)) === PRICE_IDS.setup));
+        if (!setupPaid) delete row.patch.paidSetupFee;
+        row.paymentEvidence = paidInvoices.map(i => ({ invoiceId: i.id, amountPaid: i.amount_paid, currency: i.currency }));
         row.decision = Object.entries(row.patch).every(([key, value]) => vendor[key] === value) ? "unchanged" : "update";
         row.reason = "Unique matching current OWDH subscription verified in Stripe.";
         matchedCustomers.add(stripeObjectId(sub.customer));

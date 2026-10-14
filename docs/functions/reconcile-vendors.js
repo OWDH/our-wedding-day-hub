@@ -17,16 +17,16 @@ async function main() {
   if (!secret.startsWith("sk_live_") && !secret.startsWith("rk_live_")) throw new Error("Live Stripe key required for production audit.");
   const stripe = require("stripe")(secret, { maxNetworkRetries: 3 });
   const collect = async iterable => { const values = []; for await (const value of iterable) values.push(value); return values; };
-  const [vendorSnap, userSnap, customers, subscriptions, sessions] = await Promise.all([
+  const [vendorSnap, userSnap, customers, subscriptions, sessions, invoices] = await Promise.all([
     db.collection("vendors").get(), db.collection("users").get(),
     collect(stripe.customers.list({ limit: 100 })), collect(stripe.subscriptions.list({ status: "all", limit: 100 })),
-    collect(stripe.checkout.sessions.list({ limit: 100 }))
+    collect(stripe.checkout.sessions.list({ limit: 100 })), collect(stripe.invoices.list({ limit: 100 }))
   ]);
   const vendors = vendorSnap.docs.map(d => ({ ...d.data(), id: d.id }));
   const users = userSnap.docs.map(d => ({ ...d.data(), id: d.id }));
   const report = { generatedAt: new Date().toISOString(), mode: apply ? "apply" : "dry-run",
-    counts: { vendors: vendors.length, users: users.length, stripeCustomers: customers.length, stripeSubscriptions: subscriptions.length },
-    ...planReconciliation(vendors, users, customers, subscriptions, sessions) };
+    counts: { vendors: vendors.length, users: users.length, stripeCustomers: customers.length, stripeSubscriptions: subscriptions.length, stripeInvoices: invoices.length },
+    ...planReconciliation(vendors, users, customers, subscriptions, sessions, invoices) };
   // Save the plan BEFORE any writes. Reports contain private account details.
   const directory = path.join(__dirname, "private-audits");
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -37,6 +37,10 @@ async function main() {
     for (const row of report.vendors.filter(r => r.decision === "update")) {
       // Recheck Stripe just before writing and retain the exact Firestore version.
       const sub = await stripe.subscriptions.retrieve(row.patch.stripeSubscriptionId);
+      const latestInvoice = sub.latest_invoice ? await stripe.invoices.retrieve(typeof sub.latest_invoice === "string" ? sub.latest_invoice : sub.latest_invoice.id) : null;
+      if (!latestInvoice || latestInvoice.status !== "paid" || Number(latestInvoice.amount_paid) <= 0) {
+        row.result = "skipped_payment_not_verified"; continue;
+      }
       const originalSub = subscriptions.find(s => s.id === sub.id);
       if (sub.status !== originalSub.status || JSON.stringify(sub.items) !== JSON.stringify(originalSub.items)) {
         row.result = "skipped_stripe_changed"; continue;
