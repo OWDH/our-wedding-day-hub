@@ -156,18 +156,23 @@ async function requireFirebaseUser(req) {
 async function findVendorUid({ uid, customerId, subscriptionId, email }) {
   if (uid) return uid;
   if (subscriptionId) {
-    const snap = await db.collection("vendors").where("stripeSubscriptionId", "==", subscriptionId).limit(1).get();
+    const snap = await db.collection("vendors").where("stripeSubscriptionId", "==", subscriptionId).limit(2).get();
+    if (snap.size > 1) throw new Error("Ambiguous membership account.");
     if (!snap.empty) return snap.docs[0].id;
   }
   if (customerId) {
-    const snap = await db.collection("vendors").where("stripeCustomerId", "==", customerId).limit(1).get();
+    const snap = await db.collection("vendors").where("stripeCustomerId", "==", customerId).limit(2).get();
+    if (snap.size > 1) throw new Error("Ambiguous membership account.");
     if (!snap.empty) return snap.docs[0].id;
   }
   const normalisedEmail = String(email || "").trim().toLowerCase();
   if (normalisedEmail) {
-    const vendorSnap = await db.collection("vendors").where("email", "==", normalisedEmail).limit(1).get();
+    const vendorSnap = await db.collection("vendors").where("email", "==", normalisedEmail).limit(2).get();
+    if (vendorSnap.size > 1) throw new Error("Ambiguous membership account.");
     if (!vendorSnap.empty) return vendorSnap.docs[0].id;
-    const userSnap = await db.collection("users").where("email", "==", normalisedEmail).limit(1).get();
+    const userSnap = await db.collection("users").where("email", "==", normalisedEmail).limit(2).get();
+    if (userSnap.size > 1) throw new Error("Ambiguous membership account.");
+    if (!userSnap.empty && userSnap.docs[0].data().role !== "vendor") return "";
     if (!userSnap.empty) return userSnap.docs[0].id;
   }
   return "";
@@ -274,6 +279,7 @@ app.post("/create-checkout-session", async (req, res) => {
     const vendorRef = db.collection("vendors").doc(uid);
     const vendorSnap = await vendorRef.get();
     const vendor = vendorSnap.exists ? vendorSnap.data() : {};
+    if (vendor.accountStatus && vendor.accountStatus !== "active") return res.status(403).json({ error: "This account is restricted. Please contact support." });
     if (isComplimentaryVendor(vendor)) return res.status(409).json({ error: "Membership already active.", alreadyPaid: true });
     const stripe = getStripe();
     let existingSession = null;
@@ -286,18 +292,20 @@ app.post("/create-checkout-session", async (req, res) => {
     if (vendor.stripeCheckoutSessionId) {
       try {
         existingSession = await stripe.checkout.sessions.retrieve(vendor.stripeCheckoutSessionId);
+        if (!sessionBelongsToVendor(existingSession, uid, vendor)) return res.status(403).json({ error: "Stored checkout does not belong to this account. Please contact support." });
         if (canReuseCheckout(existingSession, plan)) return res.json({ url: existingSession.url, reused: true });
         if (existingSession.status === "open") {
           await stripe.checkout.sessions.expire(existingSession.id);
           existingSession = { ...existingSession, status: "expired" };
         }
         if (sessionGrantsAccess(existingSession)) {
-          await applyGrantFromSession(existingSession, uid);
-          return res.status(409).json({ error: "Membership already active.", alreadyPaid: true });
+          const grant = await applyGrantFromSession(existingSession, uid);
+          if (grant.access) return res.status(409).json({ error: "Membership already active.", alreadyPaid: true });
         }
       } catch (retrieveError) {
-        console.warn("Existing checkout retrieve failed:", retrieveError.message);
-        existingSession = null;
+        // A Stripe outage must not start a second checkout or charge.
+        if (retrieveError.code !== "resource_missing") throw retrieveError;
+        existingSession = { status: "expired" };
       }
     }
     let customerId = vendor.stripeCustomerId || "";
@@ -341,7 +349,7 @@ app.post("/create-checkout-session", async (req, res) => {
   } catch (error) {
     if (error.status === 401) return res.status(401).json({ error: "Sign in required." });
     console.error("Stripe session error:", error);
-    res.status(500).json({ error: "Payment is not available right now. Please try again." });
+    res.status(503).json({ error: "Payment is not available right now. Please try again before making another payment." });
   }
 });
 
@@ -442,12 +450,13 @@ app.post("/send-message-notification", async (req, res) => {
     const dashboardLink = recipientType === "vendor" ? `${SITE_URL}/dashboard.html` : `${SITE_URL}/couple-dashboard.html`;
     const previewText = messageBody.length > 120 ? messageBody.slice(0, 120) + "..." : messageBody;
     const resend = new Resend(resendApiKey.value());
-    await resend.emails.send({
+    const sent = await resend.emails.send({
       from: `Our Wedding Day Hub <${FROM_EMAIL}>`,
       to: recipientEmail,
       subject: `New message from ${senderName} on Our Wedding Day Hub`,
       html: `<p>Hi ${recipientName || "there"},</p><p>${senderName} sent you a message:</p><p>"${previewText}"</p><p><a href="${dashboardLink}">View Message</a></p>`
     });
+    if (!sent || sent.error || !sent.data || !sent.data.id) throw new Error("Email delivery provider did not accept the message.");
     res.json({ success: true });
   } catch (error) {
     console.error("Message notification error:", error);
@@ -460,12 +469,13 @@ app.post("/send-enquiry-notification", async (req, res) => {
     const { vendorEmail, vendorName, coupleName, coupleEmail, preferredDate, message } = req.body;
     if (!vendorEmail || !coupleName || !message) return res.status(400).json({ error: "Missing required fields." });
     const resend = new Resend(resendApiKey.value());
-    await resend.emails.send({
+    const sent = await resend.emails.send({
       from: `Our Wedding Day Hub <${FROM_EMAIL}>`,
       to: vendorEmail,
       subject: `New booking enquiry from ${coupleName} on Our Wedding Day Hub`,
       html: `<p>Hi ${vendorName || "there"},</p><p>${coupleName} sent a booking enquiry${preferredDate ? ` for ${preferredDate}` : ""}.</p><p>"${message}"</p><p>Reply to <a href="mailto:${coupleEmail}">${coupleEmail}</a> or <a href="${SITE_URL}/dashboard.html">open your dashboard</a>.</p>`
     });
+    if (!sent || sent.error || !sent.data || !sent.data.id) throw new Error("Email delivery provider did not accept the enquiry.");
     res.json({ success: true });
   } catch (error) {
     console.error("Enquiry notification error:", error);
@@ -509,9 +519,19 @@ async function handleStripeEvent(event) {
       return;
     }
     case "customer.subscription.updated":
-    case "customer.subscription.deleted":
-      await applySubscriptionUpdate(event.data.object);
+    case "customer.subscription.deleted": {
+      // Stripe may deliver events out of order. Re-read the current object.
+      const subscription = await getStripe().subscriptions.retrieve(event.data.object.id);
+      const uid = await findVendorUid({ uid: uidFromStripeObject(subscription), customerId: stripeObjectId(subscription.customer), subscriptionId: subscription.id });
+      if (uid && !subscriptionGrantsAccess(subscription.status)) {
+        const snap = await db.collection("vendors").doc(uid).get();
+        const vendor = snap.exists ? snap.data() : {};
+        // A cancelled old subscription must not revoke its replacement.
+        if (vendor.stripeSubscriptionId && vendor.stripeSubscriptionId !== subscription.id) return;
+      }
+      await applySubscriptionUpdate(subscription);
       return;
+    }
     default:
       return;
   }
