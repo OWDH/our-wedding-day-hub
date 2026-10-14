@@ -10,6 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import {
   initializeFirestore,
+  runTransaction,
   doc,
   setDoc,
   getDoc,
@@ -110,6 +111,16 @@ async function createUserWithEmailAndPassword(authInstance, email, password) {
   }
 }
 
+// Retries must never replace an existing profile, tier or payment record.
+async function ensureSignupDocument(reference, initialData) {
+  return runTransaction(db, async transaction => {
+    const existing = await transaction.get(reference);
+    if (existing.exists()) return false;
+    transaction.set(reference, initialData);
+    return true;
+  });
+}
+
 export {
   app,
   auth,
@@ -134,6 +145,8 @@ export {
   onSnapshot,
   deleteDoc,
   serverTimestamp,
+  runTransaction,
+  ensureSignupDocument,
   limit,
   ref,
   uploadBytes,

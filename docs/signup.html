@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-signup-build="20260911-2">
+<html lang="en" data-signup-build="20261014-1">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -142,7 +142,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '20260911-2';
+  const BUILD = '20261014-1';
   const state = {
     role: 'vendor',
     tier: 'edit',
@@ -289,7 +289,7 @@
         fb = await withTimeout(loadFirebase(true), 12000, 'Registration service could not be loaded.');
       }
 
-      const { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp, callFunctionsApi } = fb;
+      const { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp, callFunctionsApi, getDoc, ensureSignupDocument } = fb;
       if (!auth || !db || !createUserWithEmailAndPassword || !setDoc) {
         throw new Error('Registration service did not initialise correctly.');
       }
@@ -303,7 +303,7 @@
       );
 
       try {
-        if (window.zaraz && typeof window.zaraz.track === 'function') {
+        if (!window.__owdhResumedSignup && window.zaraz && typeof window.zaraz.track === 'function') {
           window.zaraz.track('CompleteRegistration', { registration_type: state.role });
         }
       } catch (_) {
@@ -317,6 +317,14 @@
       const userData = { email, role: state.role, createdAt: serverTimestamp() };
 
       if (state.role === 'vendor') {
+        const existingVendor = await getDoc(doc(db, 'vendors', uid));
+        if (existingVendor.exists()) {
+          await ensureSignupDocument(doc(db, 'users', uid), userData);
+          message('Your account already exists. Opening your dashboard...');
+          window.location.href = 'dashboard.html';
+          return;
+        }
+
         userData.businessName = byId('businessName').value.trim();
         userData.primaryCategory = byId('primaryCategory').value;
 
@@ -335,21 +343,17 @@
         };
 
         if (isFreeInvite) {
-          await retryOnce(() => setDoc(doc(db, 'users', uid), userData));
-          await retryOnce(() => setDoc(doc(db, 'vendors', uid), vendorData));
+          await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
+          await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
           message('Account created! Redirecting...');
           window.setTimeout(() => { window.location.href = 'dashboard.html'; }, 500);
           return;
         }
 
-        // Profile writes are attempted twice, but a temporary Firestore write
-        // issue must not strand a newly-created vendor before payment.
-        try {
-          await retryOnce(() => setDoc(doc(db, 'users', uid), userData));
-          await retryOnce(() => setDoc(doc(db, 'vendors', uid), vendorData));
-        } catch (profileError) {
-          console.warn('Vendor account created but profile write is pending.', profileError);
-        }
+        // Confirm profile creation before taking payment. Retrying is safe:
+        // existing documents and payment fields are never replaced.
+        await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
+        await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
 
         message('Account created! Redirecting you to payment...');
         const apiPlan = { edit: 'classic', spotlight: 'signature', feature: 'elite', icon: 'platinum' }[finalTier] || finalTier;
@@ -375,7 +379,7 @@
 
       userData.partnerOne = byId('partnerOne').value.trim();
       userData.partnerTwo = byId('partnerTwo').value.trim();
-      await retryOnce(() => setDoc(doc(db, 'users', uid), userData));
+      await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
       message('Account created! Redirecting...');
       window.setTimeout(() => { window.location.href = 'couple-dashboard.html'; }, 500);
     } catch (error) {
