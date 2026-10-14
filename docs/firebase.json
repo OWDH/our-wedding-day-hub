@@ -4,5 +4,8 @@
     "predeploy": [
       "npm --prefix \"$RESOURCE_DIR\" test"
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
