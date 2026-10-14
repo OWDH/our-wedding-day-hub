@@ -149,42 +149,7 @@ export function isMissingFunctionsRoute(err) {
   return /Cannot POST/i.test(message) || /Endpoint not found/i.test(message);
 }
 
-const VENDOR_PAYMENT_LINKS = {
-  edit: "https://buy.stripe.com/28E8wPfWk5tt1uV49AdnW08",
-  spotlight: "https://buy.stripe.com/14A7sL6lKg872yZaxYdnW09",
-  feature: "https://buy.stripe.com/7sYeVddOcaNN0qR7lMdnW0a",
-  icon: "https://buy.stripe.com/eVqcN56lK9JJb5vaxYdnW0b"
-};
-
-const VENDOR_PLAN_ALIASES = {
-  classic: "edit",
-  signature: "spotlight",
-  elite: "feature",
-  platinum: "icon",
-  edit: "edit",
-  spotlight: "spotlight",
-  feature: "feature",
-  icon: "icon"
-};
-
-function directVendorPaymentLink(plan, user) {
-  const tier = VENDOR_PLAN_ALIASES[String(plan || "").trim().toLowerCase()] || "";
-  const base = VENDOR_PAYMENT_LINKS[tier];
-  if (!base) return "";
-  const url = new URL(base);
-  if (user && user.uid) url.searchParams.set("client_reference_id", user.uid);
-  if (user && user.email) url.searchParams.set("prefilled_email", user.email);
-  return url.toString();
-}
-
 export async function callFunctionsApi(path, { method = "POST", body, user } = {}) {
-  // Use the four approved Stripe Payment Links for new vendor checkout. This
-  // avoids reusing a stale open Checkout Session from a different tier.
-  if (path === "/create-checkout-session" && method === "POST" && body && body.plan) {
-    const paymentUrl = directVendorPaymentLink(body.plan, user);
-    if (paymentUrl) return { url: paymentUrl, paymentLink: true };
-  }
-
   const headers = { "Content-Type": "application/json" };
   if (user) {
     const token = await user.getIdToken();
@@ -192,6 +157,7 @@ export async function callFunctionsApi(path, { method = "POST", body, user } = {
   }
 
   const res = await fetch(FUNCTIONS_API_BASE + path, {
+    signal: AbortSignal.timeout(20000),
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined

@@ -15,6 +15,7 @@
     "stripe": "^18.0.0"
   },
   "scripts": {
-    "test": "node --test membership.test.js"
+    "test": "node --test *.test.js",
+    "audit:vendors": "node reconcile-vendors.js"
   }
 }

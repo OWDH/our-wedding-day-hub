@@ -145,6 +145,7 @@ function revokeMembershipPatch(subscriptionStatus) {
   return {
     paymentStatus: "cancelled",
     subscriptionActive: false,
+    paidSetupFee: false,
     stripeSubscriptionStatus: subscriptionStatus || "canceled"
   };
 }
@@ -155,8 +156,28 @@ function nextCheckoutAttempt(vendor, existingSession) {
   return current + 1;
 }
 
+// A subscription must contain an actual OWDH recurring price, not just metadata.
+function membershipPlanFromSubscription(subscription) {
+  const plans = new Set(((subscription.items && subscription.items.data) || [])
+    .map(item => Object.keys(PRICE_IDS).find(plan => plan !== "setup" && PRICE_IDS[plan] === stripeObjectId(item.price)))
+    .filter(Boolean));
+  return plans.size === 1 ? [...plans][0] : "";
+}
+function sessionBelongsToVendor(session, uid, vendor = {}) {
+  const reference = uidFromStripeObject(session);
+  if (reference) return reference === uid;
+  return Boolean(vendor.stripeCustomerId && stripeObjectId(session.customer) === vendor.stripeCustomerId);
+}
+function canReuseCheckout(session, plan) {
+  return Boolean(session && session.status === "open" && session.url
+    && normalizePlan(session.metadata && session.metadata.plan) === normalizePlan(plan));
+}
+
 module.exports = {
   PRICE_IDS,
+  membershipPlanFromSubscription,
+  sessionBelongsToVendor,
+  canReuseCheckout,
   PLAN_ALIASES,
   EVENT_STALE_MS,
   normalizePlan,

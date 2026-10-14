@@ -1011,47 +1011,18 @@ import { updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/
     const vendorSnap = await getDoc(doc(db, "vendors", uid));
     let vd = vendorSnap.exists() ? vendorSnap.data() : {};
 
-    // ── PAYMENT GATE ──
-    // Treat local access flags as a fast path, but never send a returning vendor
-    // back to payment until the live membership API has had a chance to reconcile
-    // Stripe. This prevents stale Firestore flags from locking out paid vendors.
-    const paymentStatus = String(vd.paymentStatus || "").toLowerCase();
-    const stripeStatus = String(vd.stripeSubscriptionStatus || "").toLowerCase();
-    const isFoundingOrFree = vd.complimentaryPlan === true
-      || vd.plan === "complimentary"
-      || vd.accessType === "complimentary-invite"
-      || vd.founding === true
-      || vd.foundingVendor === true
-      || paymentStatus === "free_invite"
-      || paymentStatus === "free_link";
-    let hasPaid = paymentStatus === "paid"
-      || vd.subscriptionActive === true
-      || vd.paidSetupFee === true
-      || ["active", "trialing", "past_due"].includes(stripeStatus);
-
-    if (!isFoundingOrFree && !hasPaid) {
-      try {
-        const membership = await callFunctionsApi("/verify-membership", { user: currentUser });
-        if (membership && membership.access) {
-          hasPaid = true;
-          vd = {
-            ...vd,
-            paymentStatus: "paid",
-            subscriptionActive: true,
-            stripeSubscriptionStatus: membership.status || vd.stripeSubscriptionStatus || "active"
-          };
-        }
-      } catch (membershipErr) {
-        if (!isMissingFunctionsRoute(membershipErr)) {
-          console.warn("Live membership reconciliation failed:", membershipErr);
-        }
-      }
+    // A failed verification is an outage, never evidence that payment is due.
+    const membership = await callFunctionsApi("/verify-membership", { user: currentUser });
+    if (!membership || typeof membership.access !== "boolean") {
+      throw new Error("Membership could not be verified. Please retry before making another payment.");
     }
-
-    if (!isFoundingOrFree && !hasPaid) {
+    if (!membership.access) {
       window.location.href = "payment-required.html";
       return;
     }
+    // The server reconciles Stripe into Firestore before returning access.
+    const refreshedVendor = await getDoc(doc(db, "vendors", uid));
+    vd = refreshedVendor.exists() ? refreshedVendor.data() : vd;
 
     currentVendorAccess = { subscriptionActive: vd.subscriptionActive===true, paidSetupFee: vd.paidSetupFee===true, complimentaryPlan: vd.complimentaryPlan===true, plan: vd.plan||"", accessType: vd.accessType||"", membershipTier: vd.membershipTier||"", tier: vd.tier||"", shopAccess: vd.shopAccess===true, accountStatus: vd.accountStatus||"active", profileVisible: vd.profileVisible===true, published: vd.published===true };
     businessName.value = vd.businessName||""; email.value = vd.email||currentUser.email||""; accountName.value = userData.name||""; accountEmail.value = userData.email||currentUser.email||"";
