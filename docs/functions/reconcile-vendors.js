@@ -6,17 +6,21 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { planReconciliation } = require("./reconcile");
 
+let auditStage = "initialisation";
 async function main() {
   const apply = process.argv.includes("--apply");
   const project = "ourweddingdayhub";
   const admin = require("firebase-admin");
   admin.initializeApp({ projectId: project });
   const db = admin.firestore();
+  auditStage = "stripe_secret_access";
   const secret = process.env.STRIPE_SECRET_KEY || execFileSync("gcloud", ["secrets", "versions", "access", "latest",
     "--secret=STRIPE_SECRET_KEY", "--project=" + project], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  auditStage = "stripe_key_validation";
   if (!secret.startsWith("sk_live_") && !secret.startsWith("rk_live_")) throw new Error("Live Stripe key required for production audit.");
   const stripe = require("stripe")(secret, { maxNetworkRetries: 3 });
   const collect = async iterable => { const values = []; for await (const value of iterable) values.push(value); return values; };
+  auditStage = "firestore_and_stripe_inventory";
   const [vendorSnap, userSnap, customers, subscriptions, sessions, invoices] = await Promise.all([
     db.collection("vendors").get(), db.collection("users").get(),
     collect(stripe.customers.list({ limit: 100 })), collect(stripe.subscriptions.list({ status: "all", limit: 100 })),
@@ -61,4 +65,9 @@ async function main() {
   console.log(JSON.stringify({ ...report.counts, updatesProposed: report.vendors.filter(r => r.decision === "update").length,
     manualReview: report.vendors.filter(r => r.decision === "review").length, applied, report: output }));
 }
-main().catch(error => { console.error("Reconciliation stopped. No further accounts will be changed. Check access and the private audit report."); process.exitCode = 1; });
+main().catch(error => {
+  const diagnostic = { stage: auditStage, code: typeof error.code === "string" || typeof error.code === "number" ? error.code : null,
+    status: error.statusCode || error.status || null };
+  console.error("Reconciliation stopped without further writes:", JSON.stringify(diagnostic));
+  process.exitCode = 1;
+});
