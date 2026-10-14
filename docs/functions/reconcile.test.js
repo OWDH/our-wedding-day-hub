@@ -1,4 +1,5 @@
 "use strict";
+
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { planReconciliation } = require("./reconcile");
@@ -50,7 +51,7 @@ test("confirmation rejects another vendor and unbound session ids", () => {
   assert.equal(sessionBelongsToVendor({ client_reference_id: "mandi" }, "mandi", {}), true);
 });
 test("checkout reuse requires the same tier and cancellation clears access flags", () => {
-  const session = { status: "open", url: "https://checkout.stripe.com/example", metadata: { plan: "classic" } };
+  const session = { status: "open", url: "https://checkout.stripe.com/example", metadata: { plan: "classic", recurringPriceId: PRICE_IDS.edit } };
   assert.equal(canReuseCheckout(session, "edit"), true);
   assert.equal(canReuseCheckout(session, "spotlight"), false);
   assert.equal(revokeMembershipPatch("canceled").paidSetupFee, false);
@@ -75,4 +76,10 @@ test("current exported recurring prices and legacy memberships are recognised", 
   assert.equal(membershipPlanFromSubscription({ items: { data: [
     { price: { id: cases[0][0] } }, { price: { id: cases[1][0] } }
   ] } }), "");
+});
+
+
+test("an open checkout without the current price identity cannot be reused", () => {
+  assert.equal(canReuseCheckout({ status: "open", url: "https://checkout.stripe.com/test", metadata: { plan: "feature" } }, "feature"), false);
+  assert.equal(canReuseCheckout({ status: "open", url: "https://checkout.stripe.com/test", metadata: { plan: "feature", recurringPriceId: "price_legacy" } }, "feature"), false);
 });
