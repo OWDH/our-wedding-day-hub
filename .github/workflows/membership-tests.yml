@@ -11,10 +11,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
           cache-dependency-path: docs/functions/package-lock.json
       - run: npm ci
+        working-directory: docs/functions
+      - name: Verify native image dependency
+        run: node -e 'require("sharp"); console.log("Native image dependency loaded")'
         working-directory: docs/functions
       - run: npm test
         working-directory: docs/functions
