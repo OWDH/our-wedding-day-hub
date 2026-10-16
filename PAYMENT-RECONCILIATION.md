@@ -5,14 +5,14 @@ This patch is not deployed by opening or merging the pull request. Deploy the Fi
 ## Deployment
 
 Before deployment, confirm checkout price configuration against the advertised rates.
-Current recurring price IDs from the supplied Stripe export are recognised alongside
-legacy prices. New checkouts use the current IDs and verify active AUD monthly rates
-plus the AUD 50 one-time setup price before creating a Checkout Session. The export's
-Edit price is AUD 14.75, while the website advertises AUD 14.95. Resolve that business
-pricing discrepancy and set STRIPE_PRICE_EDIT to the approved Stripe Price ID before
-deployment. The guard deliberately prevents charging an unverified amount. Other
-overrides are STRIPE_PRICE_SETUP, STRIPE_PRICE_SPOTLIGHT, STRIPE_PRICE_FEATURE and
-STRIPE_PRICE_ICON. Existing subscriptions keep their contracted prices.
+Current and legacy membership prices remain recognised. Edit checkout validation and
+public pricing now use the existing Stripe rate of AUD 14.75/month, matching the live
+catalogue inspected on 16 October. Setup remains AUD 50; Spotlight AUD 15.95, Feature
+AUD 17.25 and Icon AUD 19.95. All prices must still pass live active/AUD/interval checks.
+STRIPE_PRICE_* overrides remain supported. Existing Stripe subscriptions are unchanged.
+Existing non-empty vendor tiers are preserved during verification and reconciliation;
+any entitlement changes require a separate review. New signup/checkout stores the
+selected tier as before.
 
 Use an authorised Google Cloud/Firebase environment with the existing production secrets. Do not copy keys into source control or chat.
 
@@ -81,3 +81,28 @@ Publish the frontend only after backend checks pass. Use a separate Stripe test 
 
 For rollback, retain the private reconciliation report and the vendor's `paymentReconciliationPrevious` fields. Restore only payment fields changed by this run, after checking for newer Stripe events. Do not overwrite a whole vendor document.
 
+
+## 16 October deployment evidence and remaining release checks
+
+The user deployed api and stripeWebhook from commit 6e1a19a via their authorised Cloud
+Shell. The live route checker passed. A fresh audit read 140 vendors, 149 users, 18
+Stripe customers, 16 subscriptions and 33 invoices. Setup-fee flags were repaired
+for the 11 uniquely matched, currently paid subscribers. Direct Firebase read-back
+confirmed all 11 paid, active, setup-paid and original tiers preserved. No charge,
+subscription change or automated revocation was performed. The 64 unmatched/inactive
+review rows were left unchanged; their count is not a count of payment failures.
+
+The destination is active with all five required events selected, but no real delivery
+was observed in the supplied screenshots. Run live-payment-preflight.js in authorised
+Cloud Shell for read-only live price and webhook configuration checks. After the latest
+backend is deployed, optional --resend-invoice <invoice_id> uses the official Stripe CLI
+and the existing server key to resend one real, previously paid invoice event. It
+validates an active membership and unique unrestricted vendor first; no payment or
+subscription is created. Credentials are not printed. A fresh processed-event record
+confirms handler completion; a queued replay alone is not success. Requires the CLI
+and API permission to resend. Do not put credentials or private report data in GitHub.
+
+Do not publish frontend until the matching backend is deployed and preflight passes.
+Authenticated browser login and a complete separate Stripe test checkout remain
+unverified; route regression tests and invoice reconciliation do not establish them.
+Earlier sections record historical checks and blockers, not the current deployment.

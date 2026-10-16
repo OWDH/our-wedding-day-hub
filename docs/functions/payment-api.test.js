@@ -141,3 +141,42 @@ test("couple accounts cannot obtain or reconcile vendor membership", async () =>
     assert.equal(result.code, 403);
   }
 });
+
+
+test("paid vendor verification preserves an existing tier without another checkout", async () => {
+  const writes = [];
+  const current = { id: "sub_current", customer: "cus_m", status: "active", metadata: { firebaseUid: "mandi" }, items: { data: [{ price: { id: membership.PRICE_IDS.edit } }] } };
+  const api = loadApi({ vendor: { stripeSubscriptionId: current.id, membershipTier: "icon" }, onWrite: value => writes.push(value), stripeOverrides: { subscriptions: { retrieve: async () => current } } });
+  const result = await invoke(api["/verify-membership"]);
+  assert.equal(result.code, 200);
+  assert.equal(result.body.access, true);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].membershipTier, undefined);
+});
+
+test("Edit checkout validates the current AUD14.75 price", async () => {
+  let created = 0;
+  const api = loadApi({ vendor: { stripeCustomerId: "cus_m" }, stripeOverrides: {
+    subscriptions: { list: async function* () {} },
+    prices: { retrieve: async id => id === membership.PRICE_IDS.setup
+      ? { active: true, currency: "aud", unit_amount: 5000 }
+      : { active: true, currency: "aud", unit_amount: 1475, recurring: { interval: "month", interval_count: 1 } } },
+    checkout: { sessions: { create: async args => { created++; assert.equal(args.line_items[1].price, membership.PRICE_IDS.edit); return { id: "cs_new", url: "https://checkout.stripe.com/example" }; } } }
+  } });
+  const result = await invoke(api["/create-checkout-session"], true, { plan: "edit" });
+  assert.equal(result.code, 200);
+  assert.equal(created, 1);
+});
+
+test("completed checkout confirms payment without overwriting a current tier", async () => {
+  const writes = [];
+  const current = { id: "sub_current", customer: "cus_m", status: "active", metadata: { firebaseUid: "mandi" }, items: { data: [{ price: { id: membership.PRICE_IDS.edit } }] } };
+  const api = loadApi({ vendor: { membershipTier: "icon" }, onWrite: value => writes.push(value), stripeOverrides: {
+    subscriptions: { retrieve: async () => current },
+    checkout: { sessions: { retrieve: async () => ({ id: "cs_paid", mode: "subscription", client_reference_id: "mandi", status: "complete", payment_status: "paid", customer: "cus_m", subscription: current.id }) } }
+  } });
+  const result = await invoke(api["/confirm-checkout"], true, { sessionId: "cs_paid" });
+  assert.equal(result.code, 200);
+  assert.equal(result.body.access, true);
+  assert.equal(writes[0].membershipTier, undefined);
+});

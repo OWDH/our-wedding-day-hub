@@ -136,7 +136,7 @@ async function getConstantContactAccessToken() {
   return data.access_token;
 }
 
-function getStripe() { return new Stripe(stripeSecret.value()); }
+function getStripe() { return new Stripe(stripeSecret.value(), { timeout: 10000, maxNetworkRetries: 0 }); }
 
 async function requireFirebaseUser(req) {
   const header = req.headers.authorization || "";
@@ -235,7 +235,11 @@ async function applyGrantFromSession(session, fallbackUid) {
   if (!subscriptionGrantsAccess(subscriptionStatus)) {
     return { uid, access: false };
   }
+  const vendorRef = db.collection("vendors").doc(uid);
+  const vendorSnap = await vendorRef.get();
+  const existingVendor = vendorSnap.exists ? vendorSnap.data() : {};
   const patch = grantMembershipPatch({
+    existingTier: existingVendor.membershipTier || existingVendor.tier,
     customerId: stripeObjectId(session.customer),
     subscriptionId,
     sessionId: session.id,
@@ -277,7 +281,7 @@ async function applySubscriptionUpdate(subscription, fallbackUid) {
   if (!plan) return;
   const status = subscription.status;
   const patch = subscriptionGrantsAccess(status)
-    ? grantMembershipPatch({ customerId: stripeObjectId(subscription.customer), subscriptionId: subscription.id, plan, subscriptionStatus: status })
+    ? grantMembershipPatch({ customerId: stripeObjectId(subscription.customer), subscriptionId: subscription.id, plan, subscriptionStatus: status, existingTier: vendor.membershipTier || vendor.tier })
     : revokeMembershipPatch(status);
   patch.updatedAt = admin.firestore.FieldValue.serverTimestamp();
   await vendorRef.set(patch, { merge: true });

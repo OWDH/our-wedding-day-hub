@@ -3,7 +3,7 @@
 // Historical Stripe Price IDs retained for membership recognition.
 // New checkout pricing is configured separately and checked against public rates:
 //   setup      = $50 one-time
-//   edit       = $14.95/mo  (legacy name: classic)
+//   edit       = $14.75/mo  (legacy name: classic)
 //   spotlight  = $15.95/mo  (legacy name: signature)
 //   feature    = $17.25/mo  (legacy name: elite)
 //   icon       = $19.95/mo  (legacy name: platinum)
@@ -24,7 +24,7 @@ const PRICE_IDS = {
   feature: process.env.STRIPE_PRICE_FEATURE || "price_1U0a6eIfhRO5Mn4B4dMrAkhr",
   icon: process.env.STRIPE_PRICE_ICON || "price_1U0a5rIfhRO5Mn4Bl8KEfFXc"
 };
-const EXPECTED_PRICE_CENTS = { setup: 5000, edit: 1495, spotlight: 1595, feature: 1725, icon: 1995 };
+const EXPECTED_PRICE_CENTS = { setup: 5000, edit: 1475, spotlight: 1595, feature: 1725, icon: 1995 };
 function checkoutPriceMatches(plan, price) {
   return Boolean(price && price.active === true && price.currency === "aud"
     && price.unit_amount === EXPECTED_PRICE_CENTS[plan]
@@ -152,7 +152,7 @@ function stripeEventClaimDecision(existing, now = Date.now()) {
   return "claim";
 }
 
-function grantMembershipPatch({ customerId, subscriptionId, sessionId, plan, subscriptionStatus }) {
+function grantMembershipPatch({ customerId, subscriptionId, sessionId, plan, subscriptionStatus, existingTier }) {
   const patch = {
     paymentStatus: "paid",
     subscriptionActive: true,
@@ -163,7 +163,7 @@ function grantMembershipPatch({ customerId, subscriptionId, sessionId, plan, sub
   if (subscriptionId) patch.stripeSubscriptionId = subscriptionId;
   if (sessionId) patch.stripeCheckoutSessionId = sessionId;
   const normalized = normalizePlan(plan);
-  if (normalized) patch.membershipTier = normalized;
+  if (normalized && !existingTier) patch.membershipTier = normalized;
   return patch;
 }
 

@@ -146,6 +146,13 @@ test("checkout preflight rejects obsolete prices, wrong currency and annual bill
   assert.equal(checkoutPriceMatches("spotlight", { ...price, currency: "usd" }), false);
   assert.equal(checkoutPriceMatches("spotlight", { ...price, active: false }), false);
   assert.equal(checkoutPriceMatches("spotlight", { ...price, recurring: { interval: "year", interval_count: 1 } }), false);
-  assert.equal(checkoutPriceMatches("edit", { ...price, unit_amount: 1475 }), false);
+  assert.equal(checkoutPriceMatches("edit", { ...price, unit_amount: 1475 }), true);
   assert.equal(checkoutPriceMatches("setup", { active: true, currency: "aud", unit_amount: 5000 }), true);
+});
+
+
+test("reconciliation preserves an existing vendor tier while filling a missing tier", () => {
+  assert.equal(grantMembershipPatch({ plan: "edit", existingTier: "icon" }).membershipTier, undefined);
+  assert.equal(grantMembershipPatch({ plan: "feature", existingTier: "edit" }).membershipTier, undefined);
+  assert.equal(grantMembershipPatch({ plan: "edit" }).membershipTier, "edit");
 });

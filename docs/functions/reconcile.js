@@ -50,7 +50,7 @@ function planReconciliation(vendors, users, customers, subscriptions, sessions, 
       else if (duplicate) row.reason = "Stripe identifiers belong to another vendor; manual review required.";
       else {
         row.patch = grantMembershipPatch({ customerId: stripeObjectId(sub.customer), subscriptionId: sub.id,
-          plan: membershipPlanFromSubscription(sub), subscriptionStatus: sub.status });
+          plan: membershipPlanFromSubscription(sub), subscriptionStatus: sub.status, existingTier: vendor.membershipTier || vendor.tier });
         const setupPaid = paidInvoices.some(i => ((i.lines && i.lines.data) || []).some(line =>
           Number(line.amount) > 0 && (stripeObjectId(line.price) || (line.pricing && line.pricing.price_details && line.pricing.price_details.price)) === PRICE_IDS.setup));
         if (!setupPaid) delete row.patch.paidSetupFee;

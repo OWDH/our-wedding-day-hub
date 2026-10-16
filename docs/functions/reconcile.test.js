@@ -83,3 +83,10 @@ test("an open checkout without the current price identity cannot be reused", () 
   assert.equal(canReuseCheckout({ status: "open", url: "https://checkout.stripe.com/test", metadata: { plan: "feature" } }, "feature"), false);
   assert.equal(canReuseCheckout({ status: "open", url: "https://checkout.stripe.com/test", metadata: { plan: "feature", recurringPriceId: "price_legacy" } }, "feature"), false);
 });
+
+test("paid subscription audit preserves a manually assigned vendor tier", () => {
+  const row = plan([{ ...vendor, membershipTier: "icon" }]).vendors[0];
+  assert.equal(row.decision, "update");
+  assert.equal(row.patch.membershipTier, undefined);
+  assert.equal(row.patch.paymentStatus, "paid");
+});
