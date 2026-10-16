@@ -12,6 +12,10 @@ const os = require("os");
 const fs = require("fs");
 const {
   PRICE_IDS,
+  checkoutPriceMatches,
+  membershipPlanFromSubscription,
+  sessionBelongsToVendor,
+  canReuseCheckout,
   normalizePlan,
   resolvePlanPriceId,
   checkoutIdempotencyKey,
@@ -43,6 +47,7 @@ const FROM_EMAIL = "noreply@ourweddingdayhub.com";
 const SITE_URL = "https://ourweddingdayhub.com";
 const app = express();
 app.use(cors({ origin: true }));
+app.get("/membership-health", (_req, res) => res.json({ version: "20261014-reconciliation-v1" }));
 app.use((req, res, next) => {
   if (req.path === "/stripe-webhook") return express.raw({ type: "application/json" })(req, res, next);
   return express.json()(req, res, next);
@@ -131,7 +136,7 @@ async function getConstantContactAccessToken() {
   return data.access_token;
 }
 
-function getStripe() { return new Stripe(stripeSecret.value()); }
+function getStripe() { return new Stripe(stripeSecret.value(), { timeout: 10000, maxNetworkRetries: 0 }); }
 
 async function requireFirebaseUser(req) {
   const header = req.headers.authorization || "";
@@ -152,39 +157,56 @@ async function requireFirebaseUser(req) {
 async function findVendorUid({ uid, customerId, subscriptionId, email }) {
   if (uid) return uid;
   if (subscriptionId) {
-    const snap = await db.collection("vendors").where("stripeSubscriptionId", "==", subscriptionId).limit(1).get();
+    const snap = await db.collection("vendors").where("stripeSubscriptionId", "==", subscriptionId).limit(2).get();
+    if (snap.size > 1) throw new Error("Ambiguous membership account.");
     if (!snap.empty) return snap.docs[0].id;
   }
   if (customerId) {
-    const snap = await db.collection("vendors").where("stripeCustomerId", "==", customerId).limit(1).get();
+    const snap = await db.collection("vendors").where("stripeCustomerId", "==", customerId).limit(2).get();
+    if (snap.size > 1) throw new Error("Ambiguous membership account.");
     if (!snap.empty) return snap.docs[0].id;
   }
   const normalisedEmail = String(email || "").trim().toLowerCase();
   if (normalisedEmail) {
-    const vendorSnap = await db.collection("vendors").where("email", "==", normalisedEmail).limit(1).get();
+    const vendorSnap = await db.collection("vendors").where("email", "==", normalisedEmail).limit(2).get();
+    if (vendorSnap.size > 1) throw new Error("Ambiguous membership account.");
     if (!vendorSnap.empty) return vendorSnap.docs[0].id;
-    const userSnap = await db.collection("users").where("email", "==", normalisedEmail).limit(1).get();
+    const userSnap = await db.collection("users").where("email", "==", normalisedEmail).limit(2).get();
+    if (userSnap.size > 1) throw new Error("Ambiguous membership account.");
+    if (!userSnap.empty && userSnap.docs[0].data().role !== "vendor") return "";
     if (!userSnap.empty) return userSnap.docs[0].id;
   }
   return "";
 }
 
-async function findLiveSubscription(stripe, { customerId, email }) {
-  const customerIds = [];
-  if (customerId) customerIds.push(customerId);
+async function requireVendorAccount(uid) {
+  const [user, vendor] = await Promise.all([
+    db.collection("users").doc(uid).get(), db.collection("vendors").doc(uid).get()
+  ]);
+  if (!user.exists || user.data().role !== "vendor" || !vendor.exists) {
+    const error = new Error("A vendor account is required. Please contact support.");
+    error.status = 403;
+    throw error;
+  }
+}
+
+async function findLiveSubscription(stripe, { customerId, email, uid }) {
+  const customers = new Set(customerId ? [customerId] : []);
   const normalisedEmail = String(email || "").trim().toLowerCase();
   if (normalisedEmail) {
-    const existingCustomers = await stripe.customers.list({ email: normalisedEmail, limit: 5 });
-    for (const customer of existingCustomers.data) {
-      if (!customerIds.includes(customer.id)) customerIds.push(customer.id);
+    for await (const customer of stripe.customers.list({ email: normalisedEmail, limit: 100 })) {
+      if (!uidFromStripeObject(customer) || uidFromStripeObject(customer) === uid) customers.add(customer.id);
     }
   }
-  for (const id of customerIds) {
-    const subs = await stripe.subscriptions.list({ customer: id, status: "all", limit: 10 });
-    const liveSub = subs.data.find((sub) => subscriptionGrantsAccess(sub.status));
-    if (liveSub) return liveSub;
+  const matches = [];
+  for (const id of customers) {
+    for await (const sub of stripe.subscriptions.list({ customer: id, status: "all", limit: 100 })) {
+      if (uidFromStripeObject(sub) && uidFromStripeObject(sub) !== uid) continue;
+      if (subscriptionGrantsAccess(sub.status) && membershipPlanFromSubscription(sub)) matches.push(sub);
+    }
   }
-  return null;
+  if (matches.length > 1) throw new Error("Multiple memberships found. Contact support before making another payment.");
+  return matches[0] || null;
 }
 
 async function applyGrantFromSession(session, fallbackUid) {
@@ -195,17 +217,29 @@ async function applyGrantFromSession(session, fallbackUid) {
     email: customerEmailFromStripeObject(session)
   });
   if (!uid) throw new Error("Checkout session is missing vendor id.");
-  let subscriptionStatus = "active";
+  await requireVendorAccount(uid);
+  if (session.mode !== "subscription" || !sessionGrantsAccess(session)) throw new Error("Not a completed membership checkout.");
+  let subscriptionStatus = "";
   const subscriptionId = stripeObjectId(session.subscription);
+  if (!subscriptionId) throw new Error("Membership subscription is missing.");
   if (subscriptionId) {
     try {
       const sub = await getStripe().subscriptions.retrieve(subscriptionId);
+      if (!membershipPlanFromSubscription(sub)) throw new Error("Not an OWDH membership subscription.");
       subscriptionStatus = sub.status;
+      session = { ...session, metadata: { ...session.metadata, plan: membershipPlanFromSubscription(sub) } };
     } catch (error) {
-      console.warn("Subscription retrieve failed:", error.message);
+      throw new Error("Subscription verification unavailable. Please retry.");
     }
   }
+  if (!subscriptionGrantsAccess(subscriptionStatus)) {
+    return { uid, access: false };
+  }
+  const vendorRef = db.collection("vendors").doc(uid);
+  const vendorSnap = await vendorRef.get();
+  const existingVendor = vendorSnap.exists ? vendorSnap.data() : {};
   const patch = grantMembershipPatch({
+    existingTier: existingVendor.membershipTier || existingVendor.tier,
     customerId: stripeObjectId(session.customer),
     subscriptionId,
     sessionId: session.id,
@@ -215,7 +249,7 @@ async function applyGrantFromSession(session, fallbackUid) {
   patch.paidAt = admin.firestore.FieldValue.serverTimestamp();
   patch.updatedAt = admin.firestore.FieldValue.serverTimestamp();
   await db.collection("vendors").doc(uid).set(patch, { merge: true });
-  return { uid, access: subscriptionGrantsAccess(subscriptionStatus) || sessionGrantsAccess(session) };
+  return { uid, access: subscriptionGrantsAccess(subscriptionStatus) };
 }
 
 async function applySubscriptionUpdate(subscription, fallbackUid) {
@@ -238,13 +272,16 @@ async function applySubscriptionUpdate(subscription, fallbackUid) {
     email
   });
   if (!uid) return;
+  await requireVendorAccount(uid);
   const vendorRef = db.collection("vendors").doc(uid);
   const vendorSnap = await vendorRef.get();
   const vendor = vendorSnap.exists ? vendorSnap.data() : {};
   if (isComplimentaryVendor(vendor)) return;
+  const plan = membershipPlanFromSubscription(subscription);
+  if (!plan) return;
   const status = subscription.status;
   const patch = subscriptionGrantsAccess(status)
-    ? grantMembershipPatch({ customerId: stripeObjectId(subscription.customer), subscriptionId: subscription.id, plan: subscription.metadata && subscription.metadata.plan, subscriptionStatus: status })
+    ? grantMembershipPatch({ customerId: stripeObjectId(subscription.customer), subscriptionId: subscription.id, plan, subscriptionStatus: status, existingTier: vendor.membershipTier || vendor.tier })
     : revokeMembershipPatch(status);
   patch.updatedAt = admin.firestore.FieldValue.serverTimestamp();
   await vendorRef.set(patch, { merge: true });
@@ -254,17 +291,19 @@ app.post("/create-checkout-session", async (req, res) => {
   try {
     const decoded = await requireFirebaseUser(req);
     const uid = decoded.uid;
+    await requireVendorAccount(uid);
     const plan = normalizePlan(req.body && req.body.plan);
     const planPriceId = resolvePlanPriceId(plan);
     if (!planPriceId) return res.status(400).json({ error: "Invalid plan selected." });
     const vendorRef = db.collection("vendors").doc(uid);
     const vendorSnap = await vendorRef.get();
     const vendor = vendorSnap.exists ? vendorSnap.data() : {};
+    if (vendor.accountStatus && vendor.accountStatus !== "active") return res.status(403).json({ error: "This account is restricted. Please contact support." });
     if (isComplimentaryVendor(vendor)) return res.status(409).json({ error: "Membership already active.", alreadyPaid: true });
     const stripe = getStripe();
     let existingSession = null;
     const email = decoded.email || vendor.email || "";
-    const liveSub = await findLiveSubscription(stripe, { customerId: vendor.stripeCustomerId || "", email });
+    const liveSub = await findLiveSubscription(stripe, { customerId: vendor.stripeCustomerId || "", email, uid });
     if (liveSub) {
       await applySubscriptionUpdate(liveSub, uid);
       return res.status(409).json({ error: "Membership already active.", alreadyPaid: true });
@@ -272,14 +311,20 @@ app.post("/create-checkout-session", async (req, res) => {
     if (vendor.stripeCheckoutSessionId) {
       try {
         existingSession = await stripe.checkout.sessions.retrieve(vendor.stripeCheckoutSessionId);
-        if (existingSession.status === "open" && existingSession.url) return res.json({ url: existingSession.url, reused: true });
+        if (!sessionBelongsToVendor(existingSession, uid, vendor)) return res.status(403).json({ error: "Stored checkout does not belong to this account. Please contact support." });
+        if (canReuseCheckout(existingSession, plan)) return res.json({ url: existingSession.url, reused: true });
+        if (existingSession.status === "open") {
+          await stripe.checkout.sessions.expire(existingSession.id);
+          existingSession = { ...existingSession, status: "expired" };
+        }
         if (sessionGrantsAccess(existingSession)) {
-          await applyGrantFromSession(existingSession, uid);
-          return res.status(409).json({ error: "Membership already active.", alreadyPaid: true });
+          const grant = await applyGrantFromSession(existingSession, uid);
+          if (grant.access) return res.status(409).json({ error: "Membership already active.", alreadyPaid: true });
         }
       } catch (retrieveError) {
-        console.warn("Existing checkout retrieve failed:", retrieveError.message);
-        existingSession = null;
+        // A Stripe outage must not start a second checkout or charge.
+        if (retrieveError.code !== "resource_missing") throw retrieveError;
+        existingSession = { status: "expired" };
       }
     }
     let customerId = vendor.stripeCustomerId || "";
@@ -293,6 +338,12 @@ app.post("/create-checkout-session", async (req, res) => {
     }
     const attempt = nextCheckoutAttempt(vendor, existingSession);
     const idempotencyKey = checkoutIdempotencyKey(uid, plan, attempt);
+    const [setupPrice, recurringPrice] = await Promise.all([
+      stripe.prices.retrieve(PRICE_IDS.setup), stripe.prices.retrieve(planPriceId)
+    ]);
+    if (!checkoutPriceMatches("setup", setupPrice) || !checkoutPriceMatches(plan, recurringPrice)) {
+      return res.status(503).json({ error: "The selected plan's price needs verification. Please contact support before paying." });
+    }
     let session;
     try {
       session = await stripe.checkout.sessions.create({
@@ -303,7 +354,7 @@ app.post("/create-checkout-session", async (req, res) => {
         success_url: `${SITE_URL}/payment-success.html?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${SITE_URL}/payment-required.html`,
         allow_promotion_codes: true,
-        metadata: { firebaseUid: uid, plan },
+        metadata: { firebaseUid: uid, plan, recurringPriceId: planPriceId },
         subscription_data: { metadata: { firebaseUid: uid, plan } }
       }, { idempotencyKey });
     } catch (createError) {
@@ -321,21 +372,22 @@ app.post("/create-checkout-session", async (req, res) => {
     }, { merge: true });
     res.json({ url: session.url });
   } catch (error) {
-    if (error.status === 401) return res.status(401).json({ error: "Sign in required." });
+    if (error.status === 401 || error.status === 403) return res.status(error.status).json({ error: error.message });
     console.error("Stripe session error:", error);
-    res.status(500).json({ error: "Payment is not available right now. Please try again." });
+    res.status(503).json({ error: "Payment is not available right now. Please try again before making another payment." });
   }
 });
 
 app.post("/confirm-checkout", async (req, res) => {
   try {
     const decoded = await requireFirebaseUser(req);
+    await requireVendorAccount(decoded.uid);
     const sessionId = req.body && req.body.sessionId;
     if (!sessionId || typeof sessionId !== "string" || !sessionId.startsWith("cs_")) return res.status(400).json({ error: "Missing checkout session." });
     const session = await getStripe().checkout.sessions.retrieve(sessionId);
-    const sessionUid = uidFromStripeObject(session);
-    if (sessionUid && sessionUid !== decoded.uid) return res.status(403).json({ error: "This payment does not belong to your account." });
-    if (!sessionGrantsAccess(session) && session.payment_status !== "paid") {
+    const vendorSnap = await db.collection("vendors").doc(decoded.uid).get();
+    if (!sessionBelongsToVendor(session, decoded.uid, vendorSnap.exists ? vendorSnap.data() : {})) return res.status(403).json({ error: "This payment does not belong to your account." });
+    if (!sessionGrantsAccess(session)) {
       return res.json({ access: false, status: session.status, payment_status: session.payment_status });
     }
     const result = await applyGrantFromSession(session, decoded.uid);
@@ -350,7 +402,7 @@ app.post("/confirm-checkout", async (req, res) => {
       plan: normalizePlan(session.metadata && session.metadata.plan)
     });
   } catch (error) {
-    if (error.status === 401) return res.status(401).json({ error: "Sign in required." });
+    if (error.status === 401 || error.status === 403) return res.status(error.status).json({ error: error.message });
     console.error("confirm-checkout error:", error);
     res.status(500).json({ error: "Unable to confirm payment." });
   }
@@ -359,47 +411,34 @@ app.post("/confirm-checkout", async (req, res) => {
 app.post("/verify-membership", async (req, res) => {
   try {
     const decoded = await requireFirebaseUser(req);
+    await requireVendorAccount(decoded.uid);
     const vendorRef = db.collection("vendors").doc(decoded.uid);
     const vendorSnap = await vendorRef.get();
     const vendor = vendorSnap.exists ? vendorSnap.data() : {};
+    if (vendor.accountStatus && vendor.accountStatus !== "active") return res.json({ access: false, status: vendor.accountStatus, source: "account" });
     if (isComplimentaryVendor(vendor)) return res.json({ access: true, source: "complimentary", status: vendor.stripeSubscriptionStatus || "complimentary" });
     const stripe = getStripe();
     const email = decoded.email || vendor.email || "";
     if (vendor.stripeSubscriptionId) {
       try {
         const subscription = await stripe.subscriptions.retrieve(vendor.stripeSubscriptionId);
+        if (uidFromStripeObject(subscription) && uidFromStripeObject(subscription) !== decoded.uid) throw new Error("Membership account mismatch.");
         await applySubscriptionUpdate(subscription, decoded.uid);
-        if (subscriptionGrantsAccess(subscription.status)) return res.json({ access: true, source: "subscription", status: subscription.status });
+        if (membershipPlanFromSubscription(subscription) && subscriptionGrantsAccess(subscription.status)) return res.json({ access: true, source: "subscription", status: subscription.status });
       } catch (retrieveError) {
-        console.warn("Stored subscription retrieve failed:", retrieveError.message);
+        if (retrieveError.code !== "resource_missing") throw retrieveError;
       }
     }
-    const liveSub = await findLiveSubscription(stripe, { customerId: vendor.stripeCustomerId || "", email });
+    const liveSub = await findLiveSubscription(stripe, { customerId: vendor.stripeCustomerId || "", email, uid: decoded.uid });
     if (liveSub) {
       await applySubscriptionUpdate(liveSub, decoded.uid);
       return res.json({ access: subscriptionGrantsAccess(liveSub.status), source: "subscription", status: liveSub.status });
     }
-    if (vendor.stripeCheckoutSessionId) {
-      const session = await stripe.checkout.sessions.retrieve(vendor.stripeCheckoutSessionId);
-      if (sessionGrantsAccess(session) || session.payment_status === "paid") {
-        const result = await applyGrantFromSession(session, decoded.uid);
-        return res.json({ access: result.access, source: "checkout_session", status: session.status });
-      }
-      return res.json({ access: false, source: "checkout_session", status: session.status });
-    }
     res.json({ access: false, source: "none", status: vendor.stripeSubscriptionStatus || vendor.paymentStatus || "unpaid" });
   } catch (error) {
-    if (error.status === 401) return res.status(401).json({ error: "Sign in required." });
+    if (error.status === 401 || error.status === 403) return res.status(error.status).json({ error: error.message });
     console.error("verify-membership error:", error);
-    try {
-      const decoded = await requireFirebaseUser(req);
-      const vendorSnap = await db.collection("vendors").doc(decoded.uid).get();
-      const vendor = vendorSnap.exists ? vendorSnap.data() : {};
-      const access = isComplimentaryVendor(vendor) || subscriptionGrantsAccess(vendor.stripeSubscriptionStatus);
-      return res.json({ access, source: "cached", status: vendor.stripeSubscriptionStatus || "unknown" });
-    } catch (fallbackError) {
-      res.status(500).json({ error: "Unable to verify membership." });
-    }
+    res.status(503).json({ error: "Membership verification is temporarily unavailable. Please retry before making another payment." });
   }
 });
 
@@ -438,12 +477,13 @@ app.post("/send-message-notification", async (req, res) => {
     const dashboardLink = recipientType === "vendor" ? `${SITE_URL}/dashboard.html` : `${SITE_URL}/couple-dashboard.html`;
     const previewText = messageBody.length > 120 ? messageBody.slice(0, 120) + "..." : messageBody;
     const resend = new Resend(resendApiKey.value());
-    await resend.emails.send({
+    const sent = await resend.emails.send({
       from: `Our Wedding Day Hub <${FROM_EMAIL}>`,
       to: recipientEmail,
       subject: `New message from ${senderName} on Our Wedding Day Hub`,
       html: `<p>Hi ${recipientName || "there"},</p><p>${senderName} sent you a message:</p><p>"${previewText}"</p><p><a href="${dashboardLink}">View Message</a></p>`
     });
+    if (!sent || sent.error || !sent.data || !sent.data.id) throw new Error("Email delivery provider did not accept the message.");
     res.json({ success: true });
   } catch (error) {
     console.error("Message notification error:", error);
@@ -456,12 +496,13 @@ app.post("/send-enquiry-notification", async (req, res) => {
     const { vendorEmail, vendorName, coupleName, coupleEmail, preferredDate, message } = req.body;
     if (!vendorEmail || !coupleName || !message) return res.status(400).json({ error: "Missing required fields." });
     const resend = new Resend(resendApiKey.value());
-    await resend.emails.send({
+    const sent = await resend.emails.send({
       from: `Our Wedding Day Hub <${FROM_EMAIL}>`,
       to: vendorEmail,
       subject: `New booking enquiry from ${coupleName} on Our Wedding Day Hub`,
       html: `<p>Hi ${vendorName || "there"},</p><p>${coupleName} sent a booking enquiry${preferredDate ? ` for ${preferredDate}` : ""}.</p><p>"${message}"</p><p>Reply to <a href="mailto:${coupleEmail}">${coupleEmail}</a> or <a href="${SITE_URL}/dashboard.html">open your dashboard</a>.</p>`
     });
+    if (!sent || sent.error || !sent.data || !sent.data.id) throw new Error("Email delivery provider did not accept the enquiry.");
     res.json({ success: true });
   } catch (error) {
     console.error("Enquiry notification error:", error);
@@ -505,9 +546,19 @@ async function handleStripeEvent(event) {
       return;
     }
     case "customer.subscription.updated":
-    case "customer.subscription.deleted":
-      await applySubscriptionUpdate(event.data.object);
+    case "customer.subscription.deleted": {
+      // Stripe may deliver events out of order. Re-read the current object.
+      const subscription = await getStripe().subscriptions.retrieve(event.data.object.id);
+      const uid = await findVendorUid({ uid: uidFromStripeObject(subscription), customerId: stripeObjectId(subscription.customer), subscriptionId: subscription.id });
+      if (uid && !subscriptionGrantsAccess(subscription.status)) {
+        const snap = await db.collection("vendors").doc(uid).get();
+        const vendor = snap.exists ? snap.data() : {};
+        // A cancelled old subscription must not revoke its replacement.
+        if (vendor.stripeSubscriptionId && vendor.stripeSubscriptionId !== subscription.id) return;
+      }
+      await applySubscriptionUpdate(subscription);
       return;
+    }
     default:
       return;
   }

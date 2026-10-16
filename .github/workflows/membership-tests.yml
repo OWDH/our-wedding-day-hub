@@ -1,0 +1,23 @@
+name: Membership regression checks
+on:
+  pull_request:
+    paths: ['docs/functions/**', 'docs/firebase.js', 'docs/payment-*.html', 'docs/dashboard.html']
+  push:
+    paths: ['docs/functions/**', 'docs/firebase.js', 'docs/payment-*.html', 'docs/dashboard.html']
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs/functions/package-lock.json
+      - run: npm ci
+        working-directory: docs/functions
+      - name: Verify native image dependency
+        run: node -e 'require("sharp"); console.log("Native image dependency loaded")'
+        working-directory: docs/functions
+      - run: npm test
+        working-directory: docs/functions

@@ -1,0 +1,25 @@
+name: Vendor payment recovery checks
+on:
+  push:
+    branches: ['fix/vendor-payment-reconciliation-20261014']
+    paths: ['.github/workflows/payment-recovery.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs/functions/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        working-directory: docs/functions
+      - name: Regression tests
+        run: npm test
+        working-directory: docs/functions

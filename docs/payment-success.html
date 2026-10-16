@@ -47,13 +47,10 @@
 </main>
 
 <script type="module">
-  import { auth, db, doc, setDoc, getDoc, callFunctionsApi, isMissingFunctionsRoute, onAuthStateChanged } from "./firebase.js";
+  import { auth, callFunctionsApi, isMissingFunctionsRoute, onAuthStateChanged } from "./firebase.js";
 
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get("session_id") || "";
-  const paidFlag = params.get("paid") === "true";
-  const clientRef = params.get("client_reference_id") || "";
-  const cameFromStripe = paidFlag || sessionId.indexOf("cs_") === 0 || clientRef.length > 0;
 
   const successIcon = document.getElementById("successIcon");
   const successTitle = document.getElementById("successTitle");
@@ -75,23 +72,6 @@
     successText.textContent = "Your payment has been confirmed. Redirecting you to your dashboard\u2026";
     successBtn.style.display = "inline-flex";
     setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
-  }
-
-  async function markVendorPaidLocal(uid) {
-    const vendorRef = doc(db, "vendors", uid);
-    const snap = await getDoc(vendorRef);
-    if (!snap.exists()) {
-      throw new Error("We couldn't find your vendor account. Please contact support and we'll sort it out right away.");
-    }
-    const patch = {
-      paymentStatus: "paid",
-      subscriptionActive: true,
-      paidSetupFee: true,
-      paidAt: new Date().toISOString()
-    };
-    if (sessionId.indexOf("cs_") === 0) patch.stripeCheckoutSessionId = sessionId;
-    await setDoc(vendorRef, patch, { merge: true });
-    return true;
   }
 
   const PURCHASE_DEDUPE_PREFIX = "owdh_meta_purchase:";
@@ -202,19 +182,13 @@
       }
     }
 
-    // Keep the existing access fallback until the current Stripe verification
-    // functions are deployed everywhere. It must never create a Meta Purchase.
-    if (cameFromStripe) {
-      await markVendorPaidLocal(user.uid);
-      return { ok: true, verified: false, source: "local_fallback" };
-    }
     return { ok: false, verified: false, source: "unconfirmed" };
   }
 
   onAuthStateChanged(auth, async function(user) {
     if (!user) {
       showError("Please log in so we can attach this payment to your vendor account.");
-      successBtn.href = "login.html";
+      successBtn.href = "login.html?next=" + encodeURIComponent("payment-success.html" + window.location.search);
       successBtn.textContent = "Log in \\u2192";
       return;
     }
@@ -224,7 +198,7 @@
         await trackVerifiedPurchase(confirmation);
         showSuccess();
       } else {
-        showError("Stripe has your payment, but membership is still activating. Open your dashboard in a moment, or contact support if it stays locked.");
+        showError("Payment has not yet been verified. Please try your dashboard again shortly or contact support before making another payment.");
       }
     } catch (err) {
       console.error("Payment confirmation error:", err);
