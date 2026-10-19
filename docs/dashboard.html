@@ -792,7 +792,18 @@ import { updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/
   function getCheckedValues(container) { return Array.from(container.querySelectorAll("input:checked")).map(i => i.value); }
   function createPillCheckbox(value, labelText, checked = false, name = "") { const label = document.createElement("label"); const input = document.createElement("input"); const span = document.createElement("span"); input.type = "checkbox"; input.value = value; if (name) input.name = name; input.checked = checked; span.textContent = labelText; label.appendChild(input); label.appendChild(span); return label; }
   function hasVendorAccess(v) { return (!v.accountStatus || v.accountStatus === "active") && (v.subscriptionActive === true || v.paidSetupFee === true || v.complimentaryPlan === true || v.plan === "complimentary" || v.accessType === "complimentary-invite"); }
-  function hasShopAccess(v) { return (!v.accountStatus || v.accountStatus === "active") && (v.complimentaryPlan === true || v.plan === "complimentary" || v.accessType === "complimentary-invite" || v.shopAccess === true || ["platinum_prestige","platinum-prestige","platinum prestige"].some(p => v.plan === p || v.membershipTier === p || v.tier === p)); }
+  function hasShopAccess(v) {
+    if (!v || (v.accountStatus && v.accountStatus !== "active")) return false;
+    // Called after server membership verification. Recognise current and legacy
+    // Icon names without rewriting protected billing or manual entitlement fields.
+    const topTiers = ["icon", "the icon", "platinum", "platinum prestige"];
+    const topTier = [v.plan, v.membershipTier, v.tier].some(value =>
+      topTiers.includes(String(value || "").trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ")));
+    return v.complimentaryPlan === true || v.plan === "complimentary"
+      || v.accessType === "complimentary-invite" || v.founding === true
+      || v.foundingVendor === true || ["free_invite", "free_link"].includes(v.paymentStatus)
+      || v.shopAccess === true || topTier;
+  }
   function getPlanAccessLabel(v) { if (v.complimentaryPlan === true || v.plan === "complimentary" || v.accessType === "complimentary-invite") return "complimentary"; if (v.subscriptionActive === true) return "active subscription"; if (v.paidSetupFee === true) return "setup paid"; return "inactive"; }
   function getProfileViews(v) { return typeof v.profileViews === "number" ? v.profileViews : typeof v.viewCount === "number" ? v.viewCount : typeof v.views === "number" ? v.views : 0; }
   function updateViewProfileVisibility(v) { viewProfileBtn.style.display = (profileLive.checked && hasVendorAccess(v)) ? "inline-flex" : "none"; }
@@ -964,8 +975,12 @@ import { updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/
   }
 
   async function loadBoutiqueProducts(uid) {
-    const snap = await getDocs(query(collection(db, "boutiqueProducts"), where("vendorId", "==", uid), orderBy("createdAt", "desc")));
+    const snap = await getDocs(query(collection(db, "boutiqueProducts"), where("vendorId", "==", uid)));
     currentBoutiqueProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Sort locally so a missing composite index cannot prevent Boutique loading.
+    const createdMillis = p => typeof p.createdAt?.toMillis === "function"
+      ? p.createdAt.toMillis() : Number(p.createdAt?.seconds || 0) * 1000;
+    currentBoutiqueProducts.sort((a, b) => createdMillis(b) - createdMillis(a));
     renderBoutiqueProducts();
     const statProducts = document.getElementById("statProducts");
     if (statProducts) statProducts.textContent = currentBoutiqueProducts.length;
@@ -1024,7 +1039,7 @@ import { updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/
     const refreshedVendor = await getDoc(doc(db, "vendors", uid));
     vd = refreshedVendor.exists() ? refreshedVendor.data() : vd;
 
-    currentVendorAccess = { subscriptionActive: vd.subscriptionActive===true, paidSetupFee: vd.paidSetupFee===true, complimentaryPlan: vd.complimentaryPlan===true, plan: vd.plan||"", accessType: vd.accessType||"", membershipTier: vd.membershipTier||"", tier: vd.tier||"", shopAccess: vd.shopAccess===true, accountStatus: vd.accountStatus||"active", profileVisible: vd.profileVisible===true, published: vd.published===true };
+    currentVendorAccess = { founding: vd.founding===true, foundingVendor: vd.foundingVendor===true, paymentStatus: vd.paymentStatus||"", subscriptionActive: vd.subscriptionActive===true, paidSetupFee: vd.paidSetupFee===true, complimentaryPlan: vd.complimentaryPlan===true, plan: vd.plan||"", accessType: vd.accessType||"", membershipTier: vd.membershipTier||"", tier: vd.tier||"", shopAccess: vd.shopAccess===true, accountStatus: vd.accountStatus||"active", profileVisible: vd.profileVisible===true, published: vd.published===true };
     businessName.value = vd.businessName||""; email.value = vd.email||currentUser.email||""; accountName.value = userData.name||""; accountEmail.value = userData.email||currentUser.email||"";
     phone.value = vd.phone||""; instagram.value = vd.instagram||""; website.value = vd.website||""; facebook.value = vd.facebook||""; tiktok.value = vd.tiktok||""; youtube.value = vd.youtube||""; pinterest.value = vd.pinterest||""; linkedin.value = vd.linkedin||""; x.value = vd.x||""; serviceAreas.value = vd.serviceAreas||""; displayLocation.value = vd.displayLocation||""; bookingLink.value = vd.bookingLink||""; availabilityStatus.value = vd.availabilityStatus||""; bookingNotes.value = vd.bookingNotes||""; bio.value = vd.bio||""; priceGuide.value = vd.priceGuide||vd.price||""; services.value = vd.services||vd.packages||vd.inclusions||"";
     currentBlockedDates = Array.isArray(vd.blockedDates) ? vd.blockedDates.filter(Boolean) : [];
@@ -1095,7 +1110,13 @@ currentGalleryVideos = Array.isArray(vd.videos) && vd.videos.length
     setSingleImagePreview(currentLogoUrl, logoPreview, logoEmpty);
     setImagePreview(); setVideoPreview(); renderBlockedDates();
     updateViewProfileVisibility(currentVendorAccess); updateBoutiqueAccessVisibility(vd); updateStripeStatus(vd);
-    if (hasShopAccess(vd)) await loadBoutiqueProducts(uid);
+    if (hasShopAccess(vd)) {
+      try { await loadBoutiqueProducts(uid); }
+      catch (error) {
+        console.error("Boutique listings could not be loaded:", error);
+        boutiqueMessage.textContent = "Your Boutique access is active, but listings could not be loaded. Please refresh to retry or contact support.";
+      }
+    }
     loadMessagesSummary(uid);
     if (messagesNavLink) messagesNavLink.style.display = "inline-flex";
   }
@@ -1134,7 +1155,7 @@ currentGalleryVideos = Array.isArray(vd.videos) && vd.videos.length
     if (!currentUser) return;
     try {
       const vSnap = await getDoc(doc(db,"vendors",currentUser.uid)); const ev = vSnap.exists() ? vSnap.data() : {};
-      currentVendorAccess = { subscriptionActive: ev.subscriptionActive===true, paidSetupFee: ev.paidSetupFee===true, complimentaryPlan: ev.complimentaryPlan===true, plan: ev.plan||"", accessType: ev.accessType||"", membershipTier: ev.membershipTier||"", tier: ev.tier||"", shopAccess: ev.shopAccess===true, accountStatus: ev.accountStatus||"active", profileVisible: ev.profileVisible===true, published: ev.published===true };
+      currentVendorAccess = { founding: ev.founding===true, foundingVendor: ev.foundingVendor===true, paymentStatus: ev.paymentStatus||"", subscriptionActive: ev.subscriptionActive===true, paidSetupFee: ev.paidSetupFee===true, complimentaryPlan: ev.complimentaryPlan===true, plan: ev.plan||"", accessType: ev.accessType||"", membershipTier: ev.membershipTier||"", tier: ev.tier||"", shopAccess: ev.shopAccess===true, accountStatus: ev.accountStatus||"active", profileVisible: ev.profileVisible===true, published: ev.published===true };
       const st = getCheckedValues(styleTagOptions); const cats = getCheckedValues(categoryOptions); const cos = getCheckedValues(countryOptions); const sts = getCheckedValues(stateOptions); const regs = getCheckedValues(regionOptions);
       let pi = currentProfileImageUrl; let li = currentLogoUrl; let gi = [...currentGalleryImages]; let gv = [...currentGalleryVideos];
       if ((profileImageFile.files && profileImageFile.files[0])) pi = await uploadFileToStorage(profileImageFile.files[0], "vendor-profile-images", currentUser.uid);
@@ -1142,15 +1163,15 @@ currentGalleryVideos = Array.isArray(vd.videos) && vd.videos.length
       if ((galleryImageFiles.files && galleryImageFiles.files.length)) { const u = []; for (const f of Array.from(galleryImageFiles.files)) u.push(await uploadFileToStorage(f, "vendor-gallery-images", currentUser.uid)); gi = [...gi, ...u]; }
       if ((galleryVideoFiles.files && galleryVideoFiles.files.length)) { const u = []; for (const f of Array.from(galleryVideoFiles.files)) u.push(await uploadFileToStorage(f, "vendor-gallery-videos", currentUser.uid)); gv = [...gv, ...u]; }
       gi = [...new Set(gi)]; gv = [...new Set(gv)]; currentBlockedDates = [...new Set(currentBlockedDates)].sort();
-      const cover = gi[0] || ""; const shop = hasShopAccess(currentVendorAccess);
+      const cover = gi[0] || "";
       const placesCountries = window._placesCountries || cos;
       const placesStates    = window._placesStates    || sts;
       const placesRegions   = window._placesRegions   || regs;
       const placesLabels    = window._placesLocations || [];
       const isWorldwide     = (document.getElementById("worldwideToggle") && document.getElementById("worldwideToggle").checked) || false;
-      await setDoc(doc(db,"vendors",currentUser.uid), { uid:currentUser.uid, businessName:businessName.value.trim(), email:email.value.trim().toLowerCase(), phone:phone.value.trim(), instagram:instagram.value.trim(), website:website.value.trim(), facebook:facebook.value.trim(), tiktok:tiktok.value.trim(), youtube:youtube.value.trim(), pinterest:pinterest.value.trim(), linkedin:linkedin.value.trim(), x:x.value.trim(), serviceAreas:serviceAreas.value.trim(), displayLocation:displayLocation.value.trim(), bookingLink:bookingLink.value.trim(), availabilityStatus:availabilityStatus.value.trim(), bookingNotes:bookingNotes.value.trim(), blockedDates:currentBlockedDates, bio:bio.value.trim(), priceGuide:priceGuide.value.trim(), price:priceGuide.value.trim(), services:services.value.trim(), packages:services.value.trim(), inclusions:services.value.trim(), profileImageUrl:pi, logoUrl:li, coverImageUrl:cover, images:gi, galleryImages:gi, imageUrls:gi, videos:gv, galleryVideos:gv, videoUrls:gv, styleTags:st, categories:cats, countries:placesCountries, country:placesCountries[0]||"", states:placesStates, regions:placesRegions, serviceLocationLabels:placesLabels, worldwide:isWorldwide, profileVisible:profileLive.checked, published:profileLive.checked, shopAccess:shop, showCalendar:(document.getElementById('showCalendar') && document.getElementById('showCalendar').checked) || false, updatedAt:serverTimestamp() }, { merge:true });
+      await setDoc(doc(db,"vendors",currentUser.uid), { uid:currentUser.uid, businessName:businessName.value.trim(), email:email.value.trim().toLowerCase(), phone:phone.value.trim(), instagram:instagram.value.trim(), website:website.value.trim(), facebook:facebook.value.trim(), tiktok:tiktok.value.trim(), youtube:youtube.value.trim(), pinterest:pinterest.value.trim(), linkedin:linkedin.value.trim(), x:x.value.trim(), serviceAreas:serviceAreas.value.trim(), displayLocation:displayLocation.value.trim(), bookingLink:bookingLink.value.trim(), availabilityStatus:availabilityStatus.value.trim(), bookingNotes:bookingNotes.value.trim(), blockedDates:currentBlockedDates, bio:bio.value.trim(), priceGuide:priceGuide.value.trim(), price:priceGuide.value.trim(), services:services.value.trim(), packages:services.value.trim(), inclusions:services.value.trim(), profileImageUrl:pi, logoUrl:li, coverImageUrl:cover, images:gi, galleryImages:gi, imageUrls:gi, videos:gv, galleryVideos:gv, videoUrls:gv, styleTags:st, categories:cats, countries:placesCountries, country:placesCountries[0]||"", states:placesStates, regions:placesRegions, serviceLocationLabels:placesLabels, worldwide:isWorldwide, profileVisible:profileLive.checked, published:profileLive.checked, showCalendar:(document.getElementById('showCalendar') && document.getElementById('showCalendar').checked) || false, updatedAt:serverTimestamp() }, { merge:true });
       currentProfileImageUrl = pi; currentLogoUrl = li; currentGalleryImages = gi; currentGalleryVideos = gv;
-      currentVendorAccess = { ...currentVendorAccess, shopAccess:shop, profileVisible:profileLive.checked, published:profileLive.checked };
+      currentVendorAccess = { ...currentVendorAccess, profileVisible:profileLive.checked, published:profileLive.checked };
       profileImageFile.value = ""; logoFile.value = ""; galleryImageFiles.value = ""; galleryVideoFiles.value = "";
       profileImageFileName.textContent = ""; logoFileName.textContent = ""; galleryImageFileName.textContent = ""; galleryVideoFileName.textContent = "";
       setSingleImagePreview(pi, profileImagePreview, profileImageEmpty); setSingleImagePreview(li, logoPreview, logoEmpty);
