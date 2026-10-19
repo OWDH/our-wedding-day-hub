@@ -1,9 +1,9 @@
 name: Membership regression checks
 on:
   pull_request:
-    paths: ['docs/functions/**', 'docs/firebase.js', 'docs/signup.html', 'docs/payment-*.html', 'docs/dashboard.html', '.github/workflows/membership-tests.yml']
+    paths: ['docs/functions/**', 'docs/firebase.js', 'docs/firebase.json', 'docs/firestore.rules', 'security/**', 'docs/signup.html', 'docs/payment-*.html', 'docs/dashboard.html', '.github/workflows/membership-tests.yml']
   push:
-    paths: ['docs/functions/**', 'docs/firebase.js', 'docs/signup.html', 'docs/payment-*.html', 'docs/dashboard.html', '.github/workflows/membership-tests.yml']
+    paths: ['docs/functions/**', 'docs/firebase.js', 'docs/firebase.json', 'docs/firestore.rules', 'security/**', 'docs/signup.html', 'docs/payment-*.html', 'docs/dashboard.html', '.github/workflows/membership-tests.yml']
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -27,3 +27,18 @@ jobs:
       - name: Verify live membership routes after main updates
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: node docs/functions/check-membership-deployment.js
+  firestore-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: npm install --no-audit --no-fund
+        working-directory: security
+      - run: npm test
+        working-directory: security
