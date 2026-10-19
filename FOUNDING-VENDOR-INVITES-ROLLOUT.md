@@ -27,3 +27,15 @@
 Revert only the frontend if authorised backend deployment fails; do not grant membership based on the old public code. Restore previous server release only after checking the security impact. Never revoke a genuinely entitled account without reconciling it and recording the reason. Do not expose raw invitation tokens or signing keys in GitHub PRs or chat.
 
 **Current limitation:** Firestore rules, the live Firebase project and Stripe records are external to this repository. Passing local tests cannot certify production security; authenticated Firebase access and deployment are mandatory.
+
+## Execution checkpoint: 20 October 2026
+
+- Continued PR #12 on `security/server-authorised-founding-invites-20261020` from `de0c3354860a5212f6da8901729726f1d4dc6bb6`.
+- Fixed the missing frontend call to `/redeem-founding-invite`. The paywall now refreshes email verification, offers resend/retry, redeems through the authenticated server, refreshes custom claims, and opens the dashboard only after confirmed activation. Invitation failures never fall through to checkout. Successful activation removes the invitation from the current browser history entry; the page suppresses outgoing referrers.
+- API authentication now checks revoked tokens and disabled users through `verifyIdToken(token, true)`.
+- Added executable frontend flow tests and backend route tests for authentication, email ownership, expiry, restriction, prior redemption, same-vendor concurrency, unrelated-claim preservation and recovery after an Auth claim-write failure. Concurrency uses a serialized test double, not a production Firestore/emulator test.
+- Fixed regression workflow coverage for signup-only changes and corrected an overescaped security assertion.
+- Local full regression: **64 passed, 0 failed**, Node v24.19.0. GitHub Actions uses Node 22; inspect the run for the updated commit before rollout.
+- **No production deployment or account migration was performed. PR remains unmerged.** Firebase Console redirected to Google sign-in. No Firebase CLI credentials or Application Default Credentials were available in this execution environment. The production website could not be reached from the local runtime because its proxy connection timed out; this does not establish a site outage.
+- Next: authenticate an authorised Firebase project account, inspect/export deployed rules and relevant records, verify approved founding entitlements, migrate claims, provision the invitation secret, deploy backend, run authenticated staging/production checks, then merge/publish the frontend.
+- Still blocked: deployed Firestore/Storage rules and indexes, Stripe/webhook production checks, authenticated Boutique product operations and customer journeys, and former-staff IAM review. Boutique UI still recognises legacy Firestore entitlement fields; server-enforced rules must protect these before security sign-off. Do not invent a replacement ruleset without inspecting deployed collections and permissions.

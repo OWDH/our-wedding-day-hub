@@ -200,7 +200,7 @@ async function requireFirebaseUser(req) {
     throw err;
   }
   try {
-    return await admin.auth().verifyIdToken(header.slice(7));
+    return await admin.auth().verifyIdToken(header.slice(7), true);
   } catch (error) {
     const err = new Error("Sign in required.");
     err.status = 401;

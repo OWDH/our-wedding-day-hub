@@ -6,13 +6,13 @@ const fs = require("node:fs");
 const membership = require("./membership");
 
 // Execute the real route handlers with Stripe/Firestore boundaries stubbed.
-function loadApi({ vendor = {}, userRole = "vendor", stripeError = false, stripeOverrides = {}, resendResult = { data: { id: "email_test" } }, onWrite = () => {} } = {}) {
+function loadApi({ vendor = {}, userRole = "vendor", stripeError = false, stripeOverrides = {}, resendResult = { data: { id: "email_test" } }, onWrite = () => {}, authOverrides = {}, firestoreOverride, inviteSecret = "stub" } = {}) {
   const routes = {};
   const app = { use() {}, post(name, handler) { routes[name] = handler; }, get(name, handler) { routes[name] = handler; } };
   const doc = { get: async () => ({ exists: true, data: () => vendor }), set: async (value) => { onWrite(value); } };
   const userDoc = { get: async () => ({ exists: true, data: () => ({ role: userRole }) }) };
-  const db = { collection: name => ({ doc: () => name === "users" ? userDoc : doc }) };
-  const admin = { initializeApp() {}, firestore: () => db, auth: () => ({ verifyIdToken: async () => ({ uid: "mandi", email: "m@example.test" }), getUser: async () => ({ uid: "mandi", email: "m@example.test", customClaims: vendor._serverClaims || {} }) }) };
+  const db = firestoreOverride || { collection: name => ({ doc: () => name === "users" ? userDoc : doc }) };
+  const admin = { initializeApp() {}, firestore: () => db, auth: () => ({ verifyIdToken: async () => ({ uid: "mandi", email: "m@example.test" }), getUser: async () => ({ uid: "mandi", email: "m@example.test", customClaims: vendor._serverClaims || {} }), ...authOverrides }) };
   admin.firestore.FieldValue = { serverTimestamp: () => "timestamp" };
   function Stripe() {
     return { customers: { list: async function* () { if (stripeError) throw new Error("Stripe unavailable"); } },
@@ -23,7 +23,7 @@ function loadApi({ vendor = {}, userRole = "vendor", stripeError = false, stripe
   const modules = {
     "firebase-functions/v2/https": { onRequest: (_opts, fn) => fn },
     "firebase-functions/v2/storage": { onObjectFinalized: () => {} },
-    "firebase-functions/params": { defineSecret: () => ({ value: () => "stub" }) },
+    "firebase-functions/params": { defineSecret: name => ({ value: () => name === "FOUNDING_INVITE_SIGNING_KEY" ? inviteSecret : "stub" }) },
     "firebase-admin": admin, express: Object.assign(() => app, { json: () => {}, raw: () => {} }),
     "./founding-invites": require("./founding-invites"), cors: () => {}, stripe: Stripe, resend: { Resend: function() { this.emails = { send: async () => resendResult }; } }, sharp: () => {}, "./membership": membership
   };
@@ -39,6 +39,78 @@ async function invoke(handler, authenticated = true, body = {}) {
   await handler({ headers: authenticated ? { authorization: "Bearer test" } : {}, body }, response);
   return response;
 }
+
+test("API authentication checks revocation and rejects disabled or revoked sessions", async () => {
+  let checkRevoked;
+  const routes = loadApi({ authOverrides: { verifyIdToken: async (_token, revoked) => {
+    checkRevoked = revoked;
+    throw new Error("auth/user-disabled");
+  } } });
+  const result = await invoke(routes["/redeem-founding-invite"]);
+  assert.equal(checkRevoked, true);
+  assert.equal(result.code, 401);
+});
+
+function inviteFixture({ emailVerified = true, record = {}, vendor = {}, claimFailure = false } = {}) {
+  const { createInviteToken } = require("./founding-invites");
+  const token = createInviteToken();
+  const invite = { active: true, email: "m@example.test", expiresAt: { toMillis: () => Date.now() + 60000 }, ...record };
+  let claims = { unrelatedClaim: "preserved" }, writes = 0, failClaim = claimFailure;
+  const refs = {};
+  for (const name of ["users", "vendors", "foundingVendorInvites"]) {
+    refs[name] = { get: async () => ({ exists: true, data: () => name === "users" ? { role: "vendor" } : name === "vendors" ? vendor : invite }), set: async () => {} };
+  }
+  // Serialize transactions to model Firestore's retry/commit isolation.
+  let queue = Promise.resolve();
+  const db = { collection: name => ({ doc: () => refs[name] }), runTransaction(fn) {
+    const result = queue.then(() => fn({ get: ref => ref.get(), update(_ref, value) { writes++; Object.assign(invite, value); } }));
+    queue = result.catch(() => {});
+    return result;
+  } };
+  const routes = loadApi({ firestoreOverride: db, inviteSecret: "a".repeat(43), authOverrides: {
+    getUser: async () => ({ email: "m@example.test", emailVerified, customClaims: claims }),
+    setCustomUserClaims: async (_uid, value) => { if (failClaim) { failClaim = false; throw new Error("Auth unavailable"); } claims = value; }
+  } });
+  return { redeem: authenticated => invoke(routes["/redeem-founding-invite"], authenticated, { token }),
+    claims: () => claims, writes: () => writes };
+}
+
+test("invitation route requires authentication and verified email", async () => {
+  assert.equal((await inviteFixture().redeem(false)).code, 401);
+  const unverified = inviteFixture({ emailVerified: false });
+  assert.equal((await unverified.redeem()).code, 403);
+  assert.equal(unverified.writes(), 0);
+});
+
+test("invalid, expired, foreign, consumed and restricted invitations never grant claims", async () => {
+  for (const options of [
+    { record: { active: false } }, { record: { email: "other@example.test" } },
+    { record: { expiresAt: { toMillis: () => 0 } } }, { record: { redeemedBy: "other-vendor" } },
+    { vendor: { accountStatus: "suspended" } }
+  ]) {
+    const fixture = inviteFixture(options);
+    assert.equal((await fixture.redeem()).code, 403);
+    assert.equal(fixture.writes(), 0);
+    assert.equal(fixture.claims().owdhComplimentaryVendor, undefined);
+  }
+});
+
+test("concurrent same-vendor redemption consumes invitation once and preserves other claims", async () => {
+  const fixture = inviteFixture();
+  const results = await Promise.all([fixture.redeem(), fixture.redeem()]);
+  assert.ok(results.every(r => r.code === 200 && r.body.access === true));
+  assert.equal(fixture.writes(), 1);
+  assert.equal(fixture.claims().owdhComplimentaryVendor, true);
+  assert.equal(fixture.claims().unrelatedClaim, "preserved");
+});
+
+test("claim-write failure can resume a consumed invitation without consuming it twice", async () => {
+  const fixture = inviteFixture({ claimFailure: true });
+  assert.equal((await fixture.redeem()).code, 503);
+  assert.equal((await fixture.redeem()).code, 200);
+  assert.equal(fixture.writes(), 1);
+  assert.equal(fixture.claims().owdhComplimentaryVendor, true);
+});
 test("both production-missing membership routes exist and require authentication", async () => {
   const routes = loadApi();
   for (const name of ["/verify-membership", "/confirm-checkout"]) {
