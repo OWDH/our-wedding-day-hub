@@ -88,6 +88,8 @@ test("grant and revoke patches write Stripe identifiers, not cookies", () => {
   const revoked = revokeMembershipPatch("canceled");
   assert.equal(revoked.subscriptionActive, false);
   assert.equal(revoked.paymentStatus, "cancelled");
+  assert.equal(Object.hasOwn(revoked, "paidSetupFee"), false,
+    "A cancelled subscription does not undo an already-paid setup fee");
 });
 
 test("nextCheckoutAttempt only increments after a closed session", () => {

@@ -50,11 +50,14 @@ test("confirmation rejects another vendor and unbound session ids", () => {
   assert.equal(sessionBelongsToVendor({ customer: "cus_other" }, "mandi", {}), false);
   assert.equal(sessionBelongsToVendor({ client_reference_id: "mandi" }, "mandi", {}), true);
 });
-test("checkout reuse requires the same tier and cancellation clears access flags", () => {
+test("checkout reuse requires the same tier and cancellation preserves one-off payment history", () => {
   const session = { status: "open", url: "https://checkout.stripe.com/example", metadata: { plan: "classic", recurringPriceId: PRICE_IDS.edit } };
   assert.equal(canReuseCheckout(session, "edit"), true);
   assert.equal(canReuseCheckout(session, "spotlight"), false);
-  assert.equal(revokeMembershipPatch("canceled").paidSetupFee, false);
+  const revoked = revokeMembershipPatch("canceled");
+  assert.equal(revoked.subscriptionActive, false);
+  assert.equal(revoked.paymentStatus, "cancelled");
+  assert.equal(Object.hasOwn(revoked, "paidSetupFee"), false);
 });
 
 test("an active subscription without captured invoice payment is never labelled paid", () => {

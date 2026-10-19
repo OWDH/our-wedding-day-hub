@@ -134,6 +134,33 @@ test("late paid invoice for a cancelled old subscription cannot revoke its repla
   assert.equal(writes.length, 0);
 });
 
+test("late paid invoice for an old active subscription cannot overwrite a newer active membership", async () => {
+  const writes = [];
+  const old = { id: "sub_old", customer: "cus_m", status: "active",
+    metadata: { firebaseUid: "mandi" },
+    items: { data: [{ price: { id: membership.PRICE_IDS.edit } }] } };
+  const api = loadApi({ vendor: { stripeSubscriptionId: "sub_new", subscriptionActive: true,
+    stripeSubscriptionStatus: "active", membershipTier: "icon" },
+    onWrite: value => writes.push(value),
+    stripeOverrides: { subscriptions: { retrieve: async () => old } } });
+  await api.testHandleStripeEvent({ type: "invoice.paid", data: { object: { id: "in_delayed_active", subscription: "sub_old" } } });
+  assert.equal(writes.length, 0);
+});
+
+test("new active membership replaces an inactive old membership", async () => {
+  const writes = [];
+  const replacement = { id: "sub_new", customer: "cus_m", status: "active",
+    metadata: { firebaseUid: "mandi" },
+    items: { data: [{ price: { id: membership.PRICE_IDS.icon } }] } };
+  const api = loadApi({ vendor: { stripeSubscriptionId: "sub_old", subscriptionActive: false,
+    stripeSubscriptionStatus: "canceled" }, onWrite: value => writes.push(value),
+    stripeOverrides: { subscriptions: { retrieve: async () => replacement } } });
+  await api.testHandleStripeEvent({ type: "invoice.paid", data: { object: { id: "in_new", subscription: "sub_new" } } });
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].stripeSubscriptionId, "sub_new");
+  assert.equal(writes[0].subscriptionActive, true);
+});
+
 test("paid invoice for the current now-cancelled subscription still revokes access", async () => {
   const writes = [];
   const current = { id: "sub_current", customer: "cus_m", status: "canceled", metadata: { firebaseUid: "mandi" },
