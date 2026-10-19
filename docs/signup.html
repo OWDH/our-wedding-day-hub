@@ -313,7 +313,8 @@
       const uid = credential.user.uid;
       const params = new URLSearchParams(window.location.search);
       const inviteCode = params.get('invite');
-      const isFreeInvite = inviteCode === 'foundingvendor2026';
+      // Invitation tokens are validated and redeemed only by Firebase.
+      const hasInvite = state.role === 'vendor' && Boolean(inviteCode);
       const userData = { email, role: state.role, createdAt: serverTimestamp() };
 
       if (state.role === 'vendor') {
@@ -337,23 +338,27 @@
           profileVisible: false,
           published: false,
           membershipTier: finalTier,
-          paymentStatus: isFreeInvite ? 'free_invite' : 'pending',
-          subscriptionActive: Boolean(isFreeInvite),
-          inviteCode: inviteCode || null
+          paymentStatus: 'pending',
+          subscriptionActive: false
         };
-
-        if (isFreeInvite) {
-          await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
-          await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
-          message('Account created! Redirecting...');
-          window.setTimeout(() => { window.location.href = 'dashboard.html'; }, 500);
-          return;
-        }
 
         // Confirm profile creation before taking payment. Retrying is safe:
         // existing documents and payment fields are never replaced.
         await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
         await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
+
+        if (hasInvite) {
+          message('Verifying your founding vendor invitation...');
+          const redeemed = await withTimeout(callFunctionsApi('/redeem-founding-invite', {
+            user: credential.user, body: { token: inviteCode }
+          }), 15000, 'Invitation verification timed out. Please sign in to retry.');
+          if (redeemed && redeemed.access === true) {
+            message('Invitation confirmed. Opening your dashboard...');
+            window.location.href = 'dashboard.html';
+            return;
+          }
+          throw new Error('This invitation could not be verified. Your account was created, but no complimentary access was granted. Please contact support.');
+        }
 
         message('Account created! Redirecting you to payment...');
         const apiPlan = { edit: 'classic', spotlight: 'signature', feature: 'elite', icon: 'platinum' }[finalTier] || finalTier;
