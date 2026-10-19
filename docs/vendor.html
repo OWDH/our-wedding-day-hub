@@ -686,9 +686,19 @@ function renderTestimonials(v) {
   var approved = all.filter(function(t){ return t.approved === true || t.approved === undefined; });
   if (!approved.length) { hide(testimonialsCard); return; }
   vendorTestimonials.className = "testimonial-list";
-  vendorTestimonials.innerHTML = approved.map(function(t) {
-    return '<div class="testimonial-item"><p class="testimonial-quote">“'+String(t.quote||"").trim()+'”</p><p class="testimonial-name">'+String(t.name||"Happy client").trim()+(t.date?'<span class="testimonial-date"> · '+String(t.date).trim()+"</span>":"")+"</p></div>";
-  }).join("");
+  vendorTestimonials.replaceChildren();
+  approved.forEach(function(t) {
+    var card = document.createElement("div"); card.className = "testimonial-item";
+    var quote = document.createElement("p"); quote.className = "testimonial-quote";
+    quote.textContent = "“" + String(t.quote || "").trim() + "”";
+    var name = document.createElement("p"); name.className = "testimonial-name";
+    name.textContent = String(t.name || "Happy client").trim();
+    if (t.date) {
+      var date = document.createElement("span"); date.className = "testimonial-date";
+      date.textContent = " · " + String(t.date).trim(); name.appendChild(date);
+    }
+    card.append(quote, name); vendorTestimonials.appendChild(card);
+  });
   show(testimonialsCard, "block");
 }
 
