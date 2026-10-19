@@ -12,7 +12,7 @@ function loadApi({ vendor = {}, userRole = "vendor", stripeError = false, stripe
   const doc = { get: async () => ({ exists: true, data: () => vendor }), set: async (value) => { onWrite(value); } };
   const userDoc = { get: async () => ({ exists: true, data: () => ({ role: userRole }) }) };
   const db = { collection: name => ({ doc: () => name === "users" ? userDoc : doc }) };
-  const admin = { initializeApp() {}, firestore: () => db, auth: () => ({ verifyIdToken: async () => ({ uid: "mandi", email: "m@example.test" }) }) };
+  const admin = { initializeApp() {}, firestore: () => db, auth: () => ({ verifyIdToken: async () => ({ uid: "mandi", email: "m@example.test" }), getUser: async () => ({ uid: "mandi", email: "m@example.test", customClaims: vendor._serverClaims || {} }) }) };
   admin.firestore.FieldValue = { serverTimestamp: () => "timestamp" };
   function Stripe() {
     return { customers: { list: async function* () { if (stripeError) throw new Error("Stripe unavailable"); } },
@@ -25,7 +25,7 @@ function loadApi({ vendor = {}, userRole = "vendor", stripeError = false, stripe
     "firebase-functions/v2/storage": { onObjectFinalized: () => {} },
     "firebase-functions/params": { defineSecret: () => ({ value: () => "stub" }) },
     "firebase-admin": admin, express: Object.assign(() => app, { json: () => {}, raw: () => {} }),
-    cors: () => {}, stripe: Stripe, resend: { Resend: function() { this.emails = { send: async () => resendResult }; } }, sharp: () => {}, "./membership": membership
+    "./founding-invites": require("./founding-invites"), cors: () => {}, stripe: Stripe, resend: { Resend: function() { this.emails = { send: async () => resendResult }; } }, sharp: () => {}, "./membership": membership
   };
   const exposed = {};
   vm.runInNewContext(fs.readFileSync(__dirname + "/index.js", "utf8") + "\nexports.testHandleStripeEvent = handleStripeEvent;", {
@@ -98,11 +98,13 @@ test("successful verification with no Stripe membership returns unpaid", async (
   assert.equal(result.code, 200);
   assert.equal(result.body.access, false);
 });
-test("complimentary access works without Stripe but suspended accounts stay restricted", async () => {
-  const allowed = await invoke(loadApi({ vendor: { complimentaryPlan: true }, stripeError: true })["/verify-membership"]);
+test("only server claims grant complimentary access; forged vendor flags do not", async () => {
+  const allowed = await invoke(loadApi({ vendor: { _serverClaims: { owdhComplimentaryVendor: true } }, stripeError: true })["/verify-membership"]);
   assert.equal(allowed.body.access, true);
-  const denied = await invoke(loadApi({ vendor: { complimentaryPlan: true, accountStatus: "suspended" } })["/verify-membership"]);
+  const denied = await invoke(loadApi({ vendor: { _serverClaims: { owdhComplimentaryVendor: true }, accountStatus: "suspended" } })["/verify-membership"]);
   assert.equal(denied.body.access, false);
+  const forged = await invoke(loadApi({ vendor: { complimentaryPlan: true, foundingVendor: true, paymentStatus: "free_invite" } })["/verify-membership"]);
+  assert.equal(forged.body.access, false);
 });
 
 
