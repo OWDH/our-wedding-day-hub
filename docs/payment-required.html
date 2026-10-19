@@ -76,7 +76,7 @@
 </main>
 
 <script type="module">
-  import { auth, db, doc, setDoc, getDoc, signOut, onAuthStateChanged, callFunctionsApi, isMissingFunctionsRoute } from "./firebase.js";
+  import { auth, db, doc, setDoc, getDoc, signOut, onAuthStateChanged, callFunctionsApi, isMissingFunctionsRoute, sendEmailVerification } from "./firebase.js";
 
   let currentUser = null;
   let selectedTier = "edit";
@@ -87,7 +87,9 @@
   // Sending edit/spotlight/feature/icon returns "Invalid plan selected."
   const TIER_TO_PLAN = { edit: "classic", spotlight: "signature", feature: "elite", icon: "platinum" };
 
-  const LOGIN_RETURN = "login.html?next=" + encodeURIComponent("payment-required.html");
+  const inviteToken = new URLSearchParams(window.location.search).get("invite") || "";
+  const returnPath = "payment-required.html" + (inviteToken ? "?invite=" + encodeURIComponent(inviteToken) : "");
+  const LOGIN_RETURN = "login.html?next=" + encodeURIComponent(returnPath);
 
   function setStatus(message) {
     const status = document.getElementById("prStatus");
@@ -194,6 +196,12 @@
       event.preventDefault();
       setStatus("Please log in first. Redirecting\u2026");
       window.location.href = LOGIN_RETURN;
+      return;
+    }
+
+    if (inviteToken) {
+      event.preventDefault();
+      setStatus("Please complete the invitation activation or contact support before paying.");
       return;
     }
 
