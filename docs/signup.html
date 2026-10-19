@@ -289,7 +289,7 @@
         fb = await withTimeout(loadFirebase(true), 12000, 'Registration service could not be loaded.');
       }
 
-      const { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp, callFunctionsApi, getDoc, ensureSignupDocument } = fb;
+      const { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp, callFunctionsApi, getDoc, ensureSignupDocument, sendEmailVerification } = fb;
       if (!auth || !db || !createUserWithEmailAndPassword || !setDoc) {
         throw new Error('Registration service did not initialise correctly.');
       }
@@ -348,16 +348,15 @@
         await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
 
         if (hasInvite) {
-          message('Verifying your founding vendor invitation...');
-          const redeemed = await withTimeout(callFunctionsApi('/redeem-founding-invite', {
-            user: credential.user, body: { token: inviteCode }
-          }), 15000, 'Invitation verification timed out. Please sign in to retry.');
-          if (redeemed && redeemed.access === true) {
-            message('Invitation confirmed. Opening your dashboard...');
-            window.location.href = 'dashboard.html';
-            return;
+          // Email ownership must be verified before the backend grants access.
+          if (!credential.user.emailVerified) {
+            try { await sendEmailVerification(credential.user); }
+            catch (verifyError) { console.warn('Verification email could not be sent:', verifyError); }
           }
-          throw new Error('This invitation could not be verified. Your account was created, but no complimentary access was granted. Please contact support.');
+          message('Account created. Check your inbox, verify your email, then return to this invitation link to activate your membership.');
+          const resume = 'payment-required.html?invite=' + encodeURIComponent(inviteCode);
+          window.setTimeout(() => { window.location.href = resume; }, 1200);
+          return;
         }
 
         message('Account created! Redirecting you to payment...');
