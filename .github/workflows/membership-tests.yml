@@ -21,6 +21,9 @@ jobs:
         working-directory: docs/functions
       - run: npm test
         working-directory: docs/functions
+      - name: Confirm invitation frontend has no browser-issued paid or free flags
+        run: |
+          node -e 'const fs=require("fs"); const s=fs.readFileSync("docs/signup.html","utf8"); if(s.includes("foundingvendor2026") || /paymentStatus:\\s*isFreeInvite/.test(s))process.exit(1)'
       - name: Verify live membership routes after main updates
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: node docs/functions/check-membership-deployment.js
