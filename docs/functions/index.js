@@ -160,7 +160,6 @@ app.post("/redeem-founding-invite", async (req, res) => {
     catch (_) { return res.status(400).json({ error: "Invalid invitation." }); }
     const vendorRef = db.collection("vendors").doc(decoded.uid);
     const inviteRef = db.collection(INVITE_COLLECTION).doc(inviteId);
-    const claimAlreadyGranted = hasVerifiedComplimentaryClaim(user);
     const result = await db.runTransaction(async tx => {
       const [inviteSnap, vendorSnap] = await Promise.all([tx.get(inviteRef), tx.get(vendorRef)]);
       if (!vendorSnap.exists) throw Object.assign(new Error("Vendor account not found."), { status: 403 });
@@ -170,7 +169,7 @@ app.post("/redeem-founding-invite", async (req, res) => {
       }
       if (!inviteSnap.exists) throw Object.assign(new Error("Invalid or expired invitation."), { status: 403 });
       const invite = inviteSnap.data();
-      if (invite.redeemedBy === decoded.uid && claimAlreadyGranted) return { granted: true };
+      if (invite.redeemedBy === decoded.uid && isValidInviteRecord(invite, user.email)) return { granted: true };
       if (invite.redeemedBy || !isValidInviteRecord(invite, user.email)) {
         throw Object.assign(new Error("Invalid, expired or already used invitation."), { status: 403 });
       }
