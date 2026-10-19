@@ -123,6 +123,29 @@ test("cancellation of an old subscription cannot revoke its replacement", async 
   assert.equal(writes.length, 0);
 });
 
+test("late paid invoice for a cancelled old subscription cannot revoke its replacement", async () => {
+  const writes = [];
+  const old = { id: "sub_old", customer: "cus_m", status: "canceled", metadata: { firebaseUid: "mandi" },
+    items: { data: [{ price: { id: membership.PRICE_IDS.edit } }] } };
+  const api = loadApi({ vendor: { stripeSubscriptionId: "sub_new", subscriptionActive: true, stripeSubscriptionStatus: "active" },
+    onWrite: value => writes.push(value),
+    stripeOverrides: { subscriptions: { retrieve: async () => old } } });
+  await api.testHandleStripeEvent({ type: "invoice.paid", data: { object: { id: "in_late", subscription: "sub_old" } } });
+  assert.equal(writes.length, 0);
+});
+
+test("paid invoice for the current now-cancelled subscription still revokes access", async () => {
+  const writes = [];
+  const current = { id: "sub_current", customer: "cus_m", status: "canceled", metadata: { firebaseUid: "mandi" },
+    items: { data: [{ price: { id: membership.PRICE_IDS.edit } }] } };
+  const api = loadApi({ vendor: { stripeSubscriptionId: "sub_current", subscriptionActive: true },
+    onWrite: value => writes.push(value),
+    stripeOverrides: { subscriptions: { retrieve: async () => current } } });
+  await api.testHandleStripeEvent({ type: "invoice.paid", data: { object: { id: "in_cancelled", subscription: "sub_current" } } });
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].paymentStatus, "cancelled");
+});
+
 test("notification provider errors never report successful delivery", async () => {
   const api = loadApi({ resendResult: { data: null, error: { message: "Provider rejected" } } });
   const enquiry = await invoke(api["/send-enquiry-notification"], true, { vendorEmail: "vendor@example.test", coupleName: "Test", message: "Test" });
