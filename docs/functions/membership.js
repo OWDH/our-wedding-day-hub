@@ -171,7 +171,8 @@ function revokeMembershipPatch(subscriptionStatus) {
   return {
     paymentStatus: "cancelled",
     subscriptionActive: false,
-    paidSetupFee: false,
+    // The setup fee was a historical one-off payment. Cancellation must not
+    // erase evidence that it was paid, or grant continuing membership access.
     stripeSubscriptionStatus: subscriptionStatus || "canceled"
   };
 }
