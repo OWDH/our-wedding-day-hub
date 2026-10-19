@@ -21,3 +21,6 @@ jobs:
         working-directory: docs/functions
       - run: npm test
         working-directory: docs/functions
+      - name: Verify live membership routes after main updates
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: node docs/functions/check-membership-deployment.js
