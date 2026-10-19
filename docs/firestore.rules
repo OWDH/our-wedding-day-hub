@@ -16,6 +16,10 @@ function isAdmin() {
       return request.auth != null && (data.vendorId == request.auth.uid || data.coupleId == request.auth.uid);
     }
 
+    function isIconTier(value) {
+      return value is string && value.lower().trim() in ['icon', 'the icon', 'platinum', 'platinum prestige', 'platinum_prestige', 'platinum-prestige'];
+    }
+
     // Transitional recognition of existing grants, frozen by the protected-field
     // rules below. Replace legacy grant checks after independently audited claims migration.
     function boutiqueEligible() {
@@ -25,9 +29,7 @@ function isAdmin() {
         || v.get('founding', false) == true || v.get('foundingVendor', false) == true
         || v.get('plan', '') == 'complimentary' || v.get('accessType', '') == 'complimentary-invite'
         || v.get('paymentStatus', '') in ['free_invite', 'free_link'];
-      let icon = v.get('membershipTier', '') in ['icon', 'platinum', 'platinum_prestige', 'platinum-prestige', 'Platinum Prestige', 'The Icon']
-        || v.get('plan', '') in ['icon', 'platinum', 'platinum_prestige', 'platinum-prestige', 'Platinum Prestige', 'The Icon']
-        || v.get('tier', '') in ['icon', 'platinum', 'platinum_prestige', 'platinum-prestige', 'Platinum Prestige', 'The Icon'];
+      let icon = isIconTier(v.get('membershipTier', '')) || isIconTier(v.get('plan', '')) || isIconTier(v.get('tier', ''));
       let paid = v.get('subscriptionActive', false) == true || v.get('paymentStatus', '') == 'paid'
         || v.get('stripeSubscriptionStatus', '') in ['active', 'trialing', 'past_due'];
       return v.get('accountStatus', 'active') == 'active' && (complimentary || (icon && paid));

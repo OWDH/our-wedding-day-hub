@@ -3,6 +3,7 @@ const { test, before, after, beforeEach } = require("node:test");
 const fs = require("node:fs");
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require("@firebase/rules-unit-testing");
 const { doc, setDoc, updateDoc, getDoc, deleteDoc } = require("firebase/firestore");
+require("firebase/firestore").setLogLevel('silent');
 let env;
 const signup = { email: "vendor@example.test", role: "vendor", createdAt: 1,
   businessName: "Test", primaryCategory: "Photography", approved: false, visible: false,
@@ -59,6 +60,12 @@ test("Boutique rejects unpaid, lower-tier and restricted vendors while preservin
   }
   for (const grant of [{ founding: true }, { shopAccess: true }, { complimentaryPlan: true }]) {
     await seed('vendors/vendor', { ...signup, ...grant });
+    await assertSucceeds(setDoc(doc(db('vendor'), 'boutiqueProducts/product'), { vendorId: 'vendor' }));
+  }
+});
+test("paid Icon and legacy Platinum tier spelling variants retain Boutique access", async () => {
+  for (const tier of ['ICON', ' ICON ', 'The Icon', 'platinum_prestige', 'platinum-prestige', 'Platinum Prestige']) {
+    await seed('vendors/vendor', { ...signup, membershipTier: tier, subscriptionActive: true });
     await assertSucceeds(setDoc(doc(db('vendor'), 'boutiqueProducts/product'), { vendorId: 'vendor' }));
   }
 });
