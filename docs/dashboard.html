@@ -965,7 +965,18 @@ import { updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/
       if (iu) { const img = document.createElement("img"); img.src = iu; img.loading = "lazy"; img.alt = p.name||"Product"; card.appendChild(img); }
       else { const ph = document.createElement("div"); ph.style.cssText = "width:100%; aspect-ratio:4/3; background:var(--cream-deep); display:flex; align-items:center; justify-content:center; color:var(--ink-ghost); font-size:1.5rem;"; ph.textContent = "✧"; card.appendChild(ph); }
       const body = document.createElement("div"); body.className = "boutique-product-card-body";
-      body.innerHTML = `<p class="boutique-product-card-name">${p.name||"Untitled"}</p><p class="boutique-product-card-meta">${p.price ? `A$${Number(p.price).toFixed(2)}` : "Price not set"} · ${p.status === "live" ? "Live" : p.status === "sold_out" ? "Sold out" : "Draft"}</p>${p.stock !== undefined ? `<p class="boutique-product-card-meta">Stock: ${p.stock}</p>` : ""}`;
+      const productName = document.createElement("p"); productName.className = "boutique-product-card-name";
+      productName.textContent = String(p.name || "Untitled");
+      const meta = document.createElement("p"); meta.className = "boutique-product-card-meta";
+      const price = Number(p.price);
+      meta.textContent = (p.price !== undefined && p.price !== null && p.price !== "" && Number.isFinite(price)
+        ? `A${price.toFixed(2)}` : "Price not set") +
+        " · " + (p.status === "live" ? "Live" : p.status === "sold_out" ? "Sold out" : "Draft");
+      body.append(productName, meta);
+      if (p.stock !== undefined) {
+        const stock = document.createElement("p"); stock.className = "boutique-product-card-meta";
+        stock.textContent = "Stock: " + String(p.stock); body.appendChild(stock);
+      }
       const actions = document.createElement("div"); actions.className = "boutique-product-card-actions";
       const editBtn = document.createElement("button"); editBtn.type = "button"; editBtn.textContent = "Edit"; editBtn.style.cssText = "background:var(--ink); color:var(--cream); border-color:var(--ink);"; editBtn.addEventListener("click", () => populateProductForm(p));
       const viewBtn = document.createElement("a"); viewBtn.href = `product.html?id=${p.id}`; viewBtn.textContent = "View";
