@@ -283,8 +283,8 @@ async function applySubscriptionUpdate(subscription, fallbackUid) {
   // Late invoice notifications for an old cancelled subscription must not
   // revoke access granted by a newer replacement subscription. Apply this
   // safeguard centrally so it also covers invoice.paid webhook events.
-  if (!subscriptionGrantsAccess(status) && vendor.stripeSubscriptionId
-      && vendor.stripeSubscriptionId !== subscription.id) return;
+  if (vendor.stripeSubscriptionId && vendor.stripeSubscriptionId !== subscription.id
+      && (vendor.subscriptionActive === true || !subscriptionGrantsAccess(status))) return;
   const patch = subscriptionGrantsAccess(status)
     ? grantMembershipPatch({ customerId: stripeObjectId(subscription.customer), subscriptionId: subscription.id, plan, subscriptionStatus: status, existingTier: vendor.membershipTier || vendor.tier })
     : revokeMembershipPatch(status);
