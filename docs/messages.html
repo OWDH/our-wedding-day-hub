@@ -180,12 +180,18 @@ async function loadConversations() {
       }
       var item = document.createElement('div');
       item.className = 'conv-item' + (d.id === currentConvId ? ' active' : '');
-      item.innerHTML =
-        '<div class="conv-name">' + otherName +
-          '<span>' + (unread > 0 ? '<span class="unread-badge">' + unread + '</span>' : '') + '</span>' +
-        '</div>' +
-        '<div class="conv-preview">' + lastMsg + '</div>' +
-        '<div class="conv-time">' + lastTime + '</div>';
+      // Names and message previews are written by users; never parse them as HTML.
+      var nameEl = document.createElement('div'); nameEl.className = 'conv-name';
+      nameEl.appendChild(document.createTextNode(String(otherName || '')));
+      if (unread > 0) {
+        var unreadEl = document.createElement('span'); unreadEl.className = 'unread-badge';
+        unreadEl.textContent = String(unread); nameEl.appendChild(unreadEl);
+      }
+      var previewEl = document.createElement('div'); previewEl.className = 'conv-preview';
+      previewEl.textContent = String(lastMsg || '');
+      var timeEl = document.createElement('div'); timeEl.className = 'conv-time';
+      timeEl.textContent = lastTime;
+      item.append(nameEl, previewEl, timeEl);
       item.addEventListener('click', function() { openConversation(d.id, conv, item, isVend); });
       list.appendChild(item);
     });
@@ -236,7 +242,11 @@ function openConversation(convId, conv, itemEl, isVend) {
           time = new Date(m.sentAt.toDate()).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
         } catch(e) { time = ''; }
       }
-      bubble.innerHTML = '<div>' + (m.body || '') + '</div><div class="msg-meta">' + time + '</div>';
+      var messageText = document.createElement('div');
+      messageText.textContent = String(m.body || '');
+      var metaEl = document.createElement('div'); metaEl.className = 'msg-meta';
+      metaEl.textContent = time;
+      bubble.append(messageText, metaEl);
       thread.appendChild(bubble);
     });
     thread.scrollTop = thread.scrollHeight;
