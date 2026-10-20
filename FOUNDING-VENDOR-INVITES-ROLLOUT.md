@@ -61,3 +61,12 @@ Revert only the frontend if authorised backend deployment fails; do not grant me
 - Added a regression that loads all three production exports with the real SDKs, checks required Admin APIs and loads sharp without contacting production. Updated boundary mocks for the modular SDK.
 - Validation: 65 regressions passed with Node 22; `npm audit --omit=dev --json` reported zero known vulnerabilities. CI now audits runtime dependencies at moderate severity or above.
 - Manual operator must pull this commit, run `npm ci`, `npm test` (65 tests) and `npm audit --omit=dev` before preparing private backups and the approved founding-vendor migration. No Functions deployment or vendor/Auth mutation has been performed by this patch.
+
+
+### Approved migration baseline: 20 October 2026, 11:43 Australia/Sydney
+
+- After the private backup completed, the operator explicitly directed: **use the existing ones**. Existing complimentary/founding markers are therefore the authorised baseline for this migration; this supersedes the earlier request to wait for a separate historical owner list. It does not establish that every historical marker was independently audited.
+- `migrate-existing-founders.js` defaults to a private, read-only dry run against the latest complete, checksummed project backup in the Cloud Shell home directory. It reuses the application's existing complimentary-marker definition. Paid-only and Boutique-only accounts do not qualify.
+- Migration eligibility requires a matching vendor user document and enabled Auth account, consistent recorded emails and no explicit server denial. Existing unverified-email founders may retain their previously granted access; email verification remains mandatory for new invitations. Restricted and mismatched accounts require review before switching the backend gate.
+- The explicit apply mode requires the saved plan path, reconstructs eligible UIDs from the verified backup, rechecks current documents/update times and restrictions, preserves the latest unrelated claims, records before/after claims privately and verifies each grant. It never writes Firestore records or Stripe data. No apply command has been run during preparation.
+- Added five targeted migration-planning/claims regression tests, all passing. Next operator action: pull the helper and run its default dry run; inspect only the counts and review reasons in chat, retaining customer records and plan files privately.
