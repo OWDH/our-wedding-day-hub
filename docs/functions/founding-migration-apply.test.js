@@ -7,6 +7,13 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const vm = require("node:vm");
 const { planFromBackup } = require("./migrate-existing-founders");
+const { safeDiagnostic } = require("./migrate-existing-founders");
+
+test("migration diagnostics exclude live tokens, endpoints and email addresses", () => {
+  const token = "exact-private-access-token";
+  const result = safeDiagnostic(new Error(token + " Bearer another-token https://example.test/private v@example.test"), token);
+  for (const secret of [token, "another-token", "example.test", "v@example.test"]) assert.equal(result.message.includes(secret), false);
+});
 
 async function runMigration({ changed = false, disabled = false, serverClaim, forged = false, lostWriteResponse = false } = {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "owdh-migration-test-"));

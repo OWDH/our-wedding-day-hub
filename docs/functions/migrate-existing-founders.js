@@ -42,6 +42,18 @@ function claimsWithGrant(auth) {
   return claims;
 }
 
+function safeDiagnostic(error, token) {
+  let message = String(error.message || "Unknown error");
+  if (token) message = message.split(token).join("[redacted]");
+  message = message.replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+    .replace(/ya29\.[A-Za-z0-9_.-]+/g, "[redacted]")
+    .replace(/https?:\/\/[^\s"']+/g, "[endpoint]")
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]");
+  return { name: error.name || "Error", message: message.slice(0, 500),
+    operation: error.operation || null,
+    causeCode: typeof (error.cause && error.cause.code) === "string" ? error.cause.code : null };
+}
+
 function readBackup(directory) {
   const manifest = JSON.parse(fs.readFileSync(path.join(directory, "manifest.json"), "utf8"));
   if (!manifest.complete || manifest.project !== PROJECT) throw new Error("Complete project backup required");
@@ -91,11 +103,12 @@ function planFromBackup(directory, backup) {
 async function main() {
   const args = process.argv.slice(2);
   const apply = args.includes("--apply");
+  const checkLive = args.includes("--check-live");
   const planIndex = args.indexOf("--plan");
-  let stage = "backup_validation", journalPath, app;
+  let stage = "backup_validation", journalPath, app, accessToken;
   const counts = { granted: 0, alreadyGranted: 0, skipped: 0 };
   try {
-    if (!apply) {
+    if (!apply && !checkLive) {
       const directory = latestBackup();
       const plan = planFromBackup(directory, readBackup(directory));
       const planPath = path.join(directory, "founding-migration-plan-" + Date.now() + ".json");
@@ -130,6 +143,7 @@ async function main() {
     stage = "authentication";
     const token = execFileSync("gcloud", ["auth", "print-access-token"],
       { encoding: "utf8", timeout: 45000, stdio: ["ignore", "pipe", "ignore"] }).trim();
+    accessToken = token;
     const { initializeApp, deleteApp } = require("firebase-admin/app");
     const { getAuth } = require("firebase-admin/auth");
     app = initializeApp({ projectId: PROJECT,
@@ -141,13 +155,30 @@ async function main() {
       if (!response.ok) throw Object.assign(new Error("Read failed"), { status: response.status });
       return response.json();
     };
+    const labelled = (operation, promise) => promise.catch(error => { error.operation = operation; throw error; });
+    const readAccount = row => Promise.all([
+      labelled("read_vendor_document", getDoc("vendors", row.uid)),
+      labelled("read_user_document", getDoc("users", row.uid)),
+      labelled("read_auth_user", auth.getUser(row.uid))
+    ]);
+    if (checkLive) {
+      stage = "revalidate_account";
+      if (!selected.length) throw new Error("No selected accounts in plan");
+      const row = selected[0];
+      const [vendorDoc, userDoc, user] = await readAccount(row);
+      console.log(JSON.stringify({ status: "LIVE_CHECK_COMPLETE", checked: 1,
+        decision: decision(fields(vendorDoc), fields(userDoc), user),
+        vendorUnchanged: vendorDoc.updateTime === row.vendorUpdateTime,
+        userUnchanged: userDoc.updateTime === row.userUpdateTime, productionWrites: 0 }, null, 2));
+      return;
+    }
     journalPath = path.join(directory, "founding-migration-results-" + Date.now() + ".json");
     const journal = { project: PROJECT, plan: planPath, startedAt: new Date().toISOString(), complete: false, results: [] };
     const save = () => fs.writeFileSync(journalPath, JSON.stringify(journal, null, 2), { mode: 0o600 });
     save();
     for (const row of selected) {
       stage = "revalidate_account";
-      const [vendorDoc, userDoc, user] = await Promise.all([getDoc("vendors", row.uid), getDoc("users", row.uid), auth.getUser(row.uid)]);
+      const [vendorDoc, userDoc, user] = await readAccount(row);
       const currentDecision = decision(fields(vendorDoc), fields(userDoc), user);
       if (currentDecision === "already_granted") {
         counts.alreadyGranted++; journal.results.push({ uid: row.uid, result: "already_granted" }); save(); continue;
@@ -179,12 +210,12 @@ async function main() {
   } catch (error) {
     console.error(JSON.stringify({ status: "MIGRATION_STOPPED", stage, ...counts, journal: journalPath,
       code: typeof error.code === "string" || typeof error.code === "number" ? error.code : null,
-      httpStatus: error.status || null }));
+      httpStatus: error.status || null, diagnostic: safeDiagnostic(error, accessToken) }));
     process.exitCode = 1;
   } finally {
     if (app) await require("firebase-admin/app").deleteApp(app);
   }
 }
 
-module.exports = { fields, decision, claimsWithGrant, planFromBackup };
+module.exports = { fields, decision, claimsWithGrant, planFromBackup, safeDiagnostic };
 if (require.main === module) main();
