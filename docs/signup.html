@@ -289,7 +289,7 @@
         fb = await withTimeout(loadFirebase(true), 12000, 'Registration service could not be loaded.');
       }
 
-      const { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp, callFunctionsApi, getDoc, ensureSignupDocument } = fb;
+      const { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp, callFunctionsApi, getDoc, ensureSignupDocument, sendEmailVerification } = fb;
       if (!auth || !db || !createUserWithEmailAndPassword || !setDoc) {
         throw new Error('Registration service did not initialise correctly.');
       }
@@ -313,7 +313,8 @@
       const uid = credential.user.uid;
       const params = new URLSearchParams(window.location.search);
       const inviteCode = params.get('invite');
-      const isFreeInvite = inviteCode === 'foundingvendor2026';
+      // Invitation tokens are validated and redeemed only by Firebase.
+      const hasInvite = state.role === 'vendor' && Boolean(inviteCode);
       const userData = { email, role: state.role, createdAt: serverTimestamp() };
 
       if (state.role === 'vendor') {
@@ -337,23 +338,26 @@
           profileVisible: false,
           published: false,
           membershipTier: finalTier,
-          paymentStatus: isFreeInvite ? 'free_invite' : 'pending',
-          subscriptionActive: Boolean(isFreeInvite),
-          inviteCode: inviteCode || null
+          paymentStatus: 'pending',
+          subscriptionActive: false
         };
-
-        if (isFreeInvite) {
-          await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
-          await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
-          message('Account created! Redirecting...');
-          window.setTimeout(() => { window.location.href = 'dashboard.html'; }, 500);
-          return;
-        }
 
         // Confirm profile creation before taking payment. Retrying is safe:
         // existing documents and payment fields are never replaced.
         await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
         await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
+
+        if (hasInvite) {
+          // Email ownership must be verified before the backend grants access.
+          if (!credential.user.emailVerified) {
+            try { await sendEmailVerification(credential.user); }
+            catch (verifyError) { console.warn('Verification email could not be sent:', verifyError); }
+          }
+          message('Account created. Check your inbox, verify your email, then return to this invitation link to activate your membership.');
+          const resume = 'payment-required.html?invite=' + encodeURIComponent(inviteCode);
+          window.setTimeout(() => { window.location.href = resume; }, 1200);
+          return;
+        }
 
         message('Account created! Redirecting you to payment...');
         const apiPlan = { edit: 'classic', spotlight: 'signature', feature: 'elite', icon: 'platinum' }[finalTier] || finalTier;

@@ -1,12 +1,17 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { onObjectFinalized } = require("firebase-functions/v2/storage");
 const { defineSecret } = require("firebase-functions/params");
-const admin = require("firebase-admin");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
+const { getStorage } = require("firebase-admin/storage");
 const express = require("express");
 const cors = require("cors");
 const Stripe = require("stripe");
 const { Resend } = require("resend");
 const sharp = require("sharp");
+const { COMPLIMENTARY_CLAIM, INVITE_COLLECTION, invitationDocumentId,
+  isValidInviteRecord, hasVerifiedComplimentaryClaim } = require("./founding-invites");
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
@@ -33,9 +38,10 @@ const {
   nextCheckoutAttempt
 } = require("./membership");
 
-admin.initializeApp();
-const db = admin.firestore();
+initializeApp();
+const db = getFirestore();
 const stripeSecret = defineSecret("STRIPE_SECRET_KEY");
+const foundingInviteKey = defineSecret("FOUNDING_INVITE_SIGNING_KEY");
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const resendApiKey = defineSecret("RESEND_API_KEY");
 const constantContactClientSecret = defineSecret("CONSTANT_CONTACT_CLIENT_SECRET");
@@ -56,7 +62,7 @@ app.use((req, res, next) => {
 exports.convertToWebP = onObjectFinalized({ memory: "512MiB", timeoutSeconds: 120 }, async (event) => {
   const filePath = event.data.name;
   const contentType = event.data.contentType;
-  const bucket = admin.storage().bucket(event.data.bucket);
+  const bucket = getStorage().bucket(event.data.bucket);
   if (!contentType || !contentType.startsWith("image/")) return;
   if (contentType === "image/webp") return;
   if (filePath.includes("_webp") || filePath.includes("thumb_")) return;
@@ -131,12 +137,63 @@ async function getConstantContactAccessToken() {
     accessToken: data.access_token,
     refreshToken: data.refresh_token || refreshToken,
     expiresAt: now + data.expires_in * 1000,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
   return data.access_token;
 }
 
 function getStripe() { return new Stripe(stripeSecret.value(), { timeout: 10000, maxNetworkRetries: 0 }); }
+
+async function hasServerComplimentaryGrant(uid) {
+  const user = await getAuth().getUser(uid);
+  return hasVerifiedComplimentaryClaim(user);
+}
+
+app.post("/redeem-founding-invite", async (req, res) => {
+  try {
+    const decoded = await requireFirebaseUser(req);
+    await requireVendorAccount(decoded.uid);
+    const user = await getAuth().getUser(decoded.uid);
+    if (!user.email || user.emailVerified !== true) {
+      return res.status(403).json({ error: "Verify your email address before redeeming an invitation." });
+    }
+    const token = req.body && req.body.token;
+    let inviteId;
+    try { inviteId = invitationDocumentId(token, foundingInviteKey.value()); }
+    catch (_) { return res.status(400).json({ error: "Invalid invitation." }); }
+    const vendorRef = db.collection("vendors").doc(decoded.uid);
+    const inviteRef = db.collection(INVITE_COLLECTION).doc(inviteId);
+    const result = await db.runTransaction(async tx => {
+      const [inviteSnap, vendorSnap] = await Promise.all([tx.get(inviteRef), tx.get(vendorRef)]);
+      if (!vendorSnap.exists) throw Object.assign(new Error("Vendor account not found."), { status: 403 });
+      const vendor = vendorSnap.data();
+      if (vendor.accountStatus && vendor.accountStatus !== "active") {
+        throw Object.assign(new Error("Account restricted."), { status: 403 });
+      }
+      if (!inviteSnap.exists) throw Object.assign(new Error("Invalid or expired invitation."), { status: 403 });
+      const invite = inviteSnap.data();
+      if (invite.redeemedBy === decoded.uid && isValidInviteRecord(invite, user.email)) return { granted: true };
+      if (invite.redeemedBy || !isValidInviteRecord(invite, user.email)) {
+        throw Object.assign(new Error("Invalid, expired or already used invitation."), { status: 403 });
+      }
+      tx.update(inviteRef, { redeemedBy: decoded.uid, redeemedAt: FieldValue.serverTimestamp() });
+      return { granted: true };
+    });
+    // If a claim write fails, retrying the same redemption is safe.
+    if (result.granted) {
+      const latest = await getAuth().getUser(decoded.uid);
+      await getAuth().setCustomUserClaims(decoded.uid, {
+        ...(latest.customClaims || {}), [COMPLIMENTARY_CLAIM]: true
+      });
+      await vendorRef.set({ updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    }
+    res.json({ access: true, source: "server_invitation" });
+  } catch (error) {
+    if (error.status === 401 || error.status === 403) return res.status(error.status).json({ error: error.message });
+    console.error("Invitation redemption failed:", error);
+    res.status(503).json({ error: "Invitation verification is temporarily unavailable. Please try again." });
+  }
+});
 
 async function requireFirebaseUser(req) {
   const header = req.headers.authorization || "";
@@ -146,7 +203,7 @@ async function requireFirebaseUser(req) {
     throw err;
   }
   try {
-    return await admin.auth().verifyIdToken(header.slice(7));
+    return await getAuth().verifyIdToken(header.slice(7), true);
   } catch (error) {
     const err = new Error("Sign in required.");
     err.status = 401;
@@ -246,8 +303,8 @@ async function applyGrantFromSession(session, fallbackUid) {
     plan: session.metadata && session.metadata.plan,
     subscriptionStatus
   });
-  patch.paidAt = admin.firestore.FieldValue.serverTimestamp();
-  patch.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+  patch.paidAt = FieldValue.serverTimestamp();
+  patch.updatedAt = FieldValue.serverTimestamp();
   await db.collection("vendors").doc(uid).set(patch, { merge: true });
   return { uid, access: subscriptionGrantsAccess(subscriptionStatus) };
 }
@@ -276,7 +333,7 @@ async function applySubscriptionUpdate(subscription, fallbackUid) {
   const vendorRef = db.collection("vendors").doc(uid);
   const vendorSnap = await vendorRef.get();
   const vendor = vendorSnap.exists ? vendorSnap.data() : {};
-  if (isComplimentaryVendor(vendor)) return;
+  if (await hasServerComplimentaryGrant(uid)) return;
   const plan = membershipPlanFromSubscription(subscription);
   if (!plan) return;
   const status = subscription.status;
@@ -288,7 +345,7 @@ async function applySubscriptionUpdate(subscription, fallbackUid) {
   const patch = subscriptionGrantsAccess(status)
     ? grantMembershipPatch({ customerId: stripeObjectId(subscription.customer), subscriptionId: subscription.id, plan, subscriptionStatus: status, existingTier: vendor.membershipTier || vendor.tier })
     : revokeMembershipPatch(status);
-  patch.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+  patch.updatedAt = FieldValue.serverTimestamp();
   await vendorRef.set(patch, { merge: true });
 }
 
@@ -304,7 +361,7 @@ app.post("/create-checkout-session", async (req, res) => {
     const vendorSnap = await vendorRef.get();
     const vendor = vendorSnap.exists ? vendorSnap.data() : {};
     if (vendor.accountStatus && vendor.accountStatus !== "active") return res.status(403).json({ error: "This account is restricted. Please contact support." });
-    if (isComplimentaryVendor(vendor)) return res.status(409).json({ error: "Membership already active.", alreadyPaid: true });
+    if (await hasServerComplimentaryGrant(uid)) return res.status(409).json({ error: "Membership already active.", alreadyPaid: true });
     const stripe = getStripe();
     let existingSession = null;
     const email = decoded.email || vendor.email || "";
@@ -373,7 +430,7 @@ app.post("/create-checkout-session", async (req, res) => {
       stripeCustomerId: customerId,
       stripeCheckoutSessionId: session.id,
       stripeCheckoutAttempt: attempt,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
     res.json({ url: session.url });
   } catch (error) {
@@ -421,7 +478,7 @@ app.post("/verify-membership", async (req, res) => {
     const vendorSnap = await vendorRef.get();
     const vendor = vendorSnap.exists ? vendorSnap.data() : {};
     if (vendor.accountStatus && vendor.accountStatus !== "active") return res.json({ access: false, status: vendor.accountStatus, source: "account" });
-    if (isComplimentaryVendor(vendor)) return res.json({ access: true, source: "complimentary", status: vendor.stripeSubscriptionStatus || "complimentary" });
+    if (await hasServerComplimentaryGrant(decoded.uid)) return res.json({ access: true, source: "complimentary", status: "complimentary" });
     const stripe = getStripe();
     const email = decoded.email || vendor.email || "";
     if (vendor.stripeSubscriptionId) {
@@ -522,15 +579,15 @@ async function beginStripeEvent(event) {
     const existing = snap.exists ? snap.data() : null;
     const decision = stripeEventClaimDecision(existing);
     if (decision !== "claim") return decision;
-    tx.set(ref, { status: "processing", type: event.type, startedAtMs: Date.now(), startedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(ref, { status: "processing", type: event.type, startedAtMs: Date.now(), startedAt: FieldValue.serverTimestamp() }, { merge: true });
     return "claimed";
   });
 }
 async function markStripeEventProcessed(event) {
-  await db.collection("stripeEvents").doc(event.id).set({ status: "processed", type: event.type, processedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  await db.collection("stripeEvents").doc(event.id).set({ status: "processed", type: event.type, processedAt: FieldValue.serverTimestamp() }, { merge: true });
 }
 async function markStripeEventFailed(event) {
-  await db.collection("stripeEvents").doc(event.id).set({ status: "failed", type: event.type, failedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  await db.collection("stripeEvents").doc(event.id).set({ status: "failed", type: event.type, failedAt: FieldValue.serverTimestamp() }, { merge: true });
 }
 async function handleStripeEvent(event) {
   switch (event.type) {
@@ -610,7 +667,7 @@ async function processStripeWebhook(req, res) {
 app.post("/stripe-webhook", (req, res) => processStripeWebhook(req, res));
 
 exports.api = onRequest({
-  secrets: [stripeSecret, stripeWebhookSecret, resendApiKey, constantContactClientSecret, constantContactRefreshToken, constantContactVendorListId, constantContactCoupleListId]
+  secrets: [stripeSecret, stripeWebhookSecret, foundingInviteKey, resendApiKey, constantContactClientSecret, constantContactRefreshToken, constantContactVendorListId, constantContactCoupleListId]
 }, app);
 
 exports.stripeWebhook = onRequest({

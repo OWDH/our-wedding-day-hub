@@ -1,0 +1,173 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+function isAdmin() {
+  return request.auth != null
+    && request.auth.token.email in [
+      "stephanie@ourweddingdayhub.com",
+      "robyn@ourweddingdayhub.com"
+    ];
+}
+
+    function owns(uid) { return request.auth != null && request.auth.uid == uid; }
+
+    function participant(data) {
+      return request.auth != null && (data.vendorId == request.auth.uid || data.coupleId == request.auth.uid);
+    }
+
+    function isIconTier(value) {
+      return value is string && value.lower().trim() in ['icon', 'the icon', 'platinum', 'platinum prestige', 'platinum_prestige', 'platinum-prestige'];
+    }
+
+    // Transitional recognition of existing grants, frozen by the protected-field
+    // rules below. Replace legacy grant checks after independently audited claims migration.
+    function boutiqueEligible() {
+      let v = get(/databases/$(database)/documents/vendors/$(request.auth.uid)).data;
+      let complimentary = request.auth.token.get('owdhComplimentaryVendor', false) == true
+        || v.get('shopAccess', false) == true || v.get('complimentaryPlan', false) == true
+        || v.get('founding', false) == true || v.get('foundingVendor', false) == true
+        || v.get('plan', '') == 'complimentary' || v.get('accessType', '') == 'complimentary-invite'
+        || v.get('paymentStatus', '') in ['free_invite', 'free_link'];
+      let icon = isIconTier(v.get('membershipTier', '')) || isIconTier(v.get('plan', '')) || isIconTier(v.get('tier', ''));
+      let paid = v.get('subscriptionActive', false) == true || v.get('paymentStatus', '') == 'paid'
+        || v.get('stripeSubscriptionStatus', '') in ['active', 'trialing', 'past_due'];
+      return v.get('accountStatus', 'active') == 'active' && (complimentary || (icon && paid));
+    }
+
+    match /foundingVendorInvites/{inviteId} { allow read, write: if false; }
+    match /stripeEvents/{eventId} { allow read, write: if false; }
+
+    match /users/{userId} {
+      allow read: if isAdmin() || owns(userId);
+      allow create: if isAdmin() || (owns(userId)
+        && request.resource.data.role in ['vendor', 'couple']
+        && !request.resource.data.keys().hasAny(['admin', 'isAdmin', 'permissions', 'customClaims']));
+      allow update: if isAdmin() || (owns(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'admin', 'isAdmin', 'permissions', 'customClaims']));
+      allow delete: if isAdmin();
+
+      match /visionBoard/{imageId} {
+        allow read, write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+      }
+    }
+
+    match /vendors/{vendorId} {
+      allow read: if true;
+      allow create: if isAdmin() || (owns(vendorId)
+        && request.resource.data.keys().hasOnly([
+          'email', 'role', 'createdAt', 'businessName', 'primaryCategory',
+          'approved', 'visible', 'profileVisible', 'published',
+          'membershipTier', 'paymentStatus', 'subscriptionActive'
+        ])
+        && request.resource.data.role == 'vendor'
+        && request.resource.data.paymentStatus == 'pending'
+        && request.resource.data.subscriptionActive == false
+        && request.resource.data.approved == false
+        && request.resource.data.visible == false
+        && request.resource.data.profileVisible == false
+        && request.resource.data.published == false
+        && request.resource.data.membershipTier in ['edit', 'spotlight', 'feature', 'icon']);
+      // Clients must not delete/recreate a profile to bypass protected updates.
+      allow delete: if isAdmin();
+      allow update: if isAdmin() || (
+        request.auth != null && request.auth.uid == vendorId
+        && request.resource.data.get('uid', vendorId) == vendorId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'paymentStatus', 'subscriptionActive', 'paidSetupFee', 'stripeCustomerId', 'stripeSubscriptionId', 'stripeSubscriptionStatus', 'stripeCheckoutSessionId', 'stripeCheckoutAttempt', 'membershipTier', 'complimentaryPlan', 'accessType', 'plan', 'subscription', 'subscriptionType', 'founding', 'foundingVendor', 'accountStatus', 'shopAccess', 'tier', 'role', 'approved', 'visible', 'admin', 'isAdmin', 'permissions', 'customClaims'
+        ])
+      );
+
+      match /pendingTestimonials/{id} {
+        allow create: if true;
+        allow read, delete: if request.auth != null
+          && request.auth.uid == vendorId;
+      }
+    }
+
+    match /couples/{coupleId} {
+      allow read, write: if isAdmin() || (request.auth != null && request.auth.uid == coupleId);
+    }
+
+    match /boutiqueProducts/{productId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.resource.data.vendorId == request.auth.uid && boutiqueEligible();
+
+      allow update: if isAdmin() || (owns(resource.data.vendorId) && boutiqueEligible()
+        && request.resource.data.vendorId == resource.data.vendorId);
+      allow delete: if isAdmin() || (owns(resource.data.vendorId) && boutiqueEligible());
+    }
+
+    match /siteTestimonials/{testimonialId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin();
+    }
+
+    match /testimonials/{testimonialId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      // The current storefront uses boutiqueProducts; legacy products are admin-managed.
+      allow write: if isAdmin();
+    }
+
+    match /conversations/{conversationId} {
+      allow read, delete: if isAdmin() || participant(resource.data);
+      allow update: if isAdmin() || (participant(resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['vendorId', 'coupleId']));
+      allow create: if isAdmin() || participant(request.resource.data);
+
+      match /messages/{messageId} {
+        function conversationParticipant() {
+          return participant(get(/databases/$(database)/documents/conversations/$(conversationId)).data);
+        }
+        allow read: if isAdmin() || conversationParticipant();
+        allow create: if isAdmin() || (conversationParticipant()
+          && request.resource.data.senderId == request.auth.uid);
+        allow update: if isAdmin() || (conversationParticipant()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']));
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /enquiries/{enquiryId} {
+      allow create: if request.auth != null;
+
+      allow read, update, delete: if request.auth != null &&
+        (
+          request.auth.uid == resource.data.vendorId ||
+          request.auth.uid == resource.data.coupleId ||
+          isAdmin()
+        );
+    }
+
+    match /journalPosts/{postId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /orderUpdates/{orderId} {
+      allow read: if request.auth != null &&
+        (
+          resource.data.buyerId == request.auth.uid ||
+          resource.data.vendorId == request.auth.uid ||
+          isAdmin()
+        );
+
+      allow create: if request.auth != null;
+
+      allow update, delete: if request.auth != null &&
+        (
+          resource.data.vendorId == request.auth.uid ||
+          isAdmin()
+        );
+    }
+  }
+}

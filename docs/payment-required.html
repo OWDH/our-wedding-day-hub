@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
   <title>Complete Your Membership | Our Wedding Day Hub</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +26,7 @@
 
     .tier-select-label{font-family:var(--font-sans);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:12px;text-align:left}
     .tier-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:28px}
+    .tier-grid[hidden]{display:none}
     .tier-card{border:.5px solid var(--ink-rule);background:var(--cream);padding:18px 16px 16px;cursor:pointer;transition:all .18s ease;text-align:left}
     .tier-card:hover{border-color:var(--ink-muted);background:var(--cream-warm)}
     .tier-card.selected{border-color:var(--ink);background:var(--ink)}
@@ -72,11 +74,12 @@
 
   <a class="pr-btn" id="goToPaymentBtn" href="#" target="_top" rel="noopener">Continue to Payment &#8594;</a>
   <p class="pr-status" id="prStatus">Choose a membership tier, then continue to secure payment.</p>
+  <button type="button" class="pr-logout" id="resendVerificationBtn" hidden>Resend verification email</button>
   <button type="button" class="pr-logout" id="prLogoutLink">Log out</button>
 </main>
 
 <script type="module">
-  import { auth, db, doc, setDoc, getDoc, signOut, onAuthStateChanged, callFunctionsApi, isMissingFunctionsRoute } from "./firebase.js";
+  import { auth, db, doc, setDoc, getDoc, signOut, onAuthStateChanged, callFunctionsApi, isMissingFunctionsRoute, sendEmailVerification } from "./firebase.js";
 
   let currentUser = null;
   let selectedTier = "edit";
@@ -87,7 +90,9 @@
   // Sending edit/spotlight/feature/icon returns "Invalid plan selected."
   const TIER_TO_PLAN = { edit: "classic", spotlight: "signature", feature: "elite", icon: "platinum" };
 
-  const LOGIN_RETURN = "login.html?next=" + encodeURIComponent("payment-required.html");
+  const inviteToken = new URLSearchParams(window.location.search).get("invite") || "";
+  const returnPath = "payment-required.html" + (inviteToken ? "?invite=" + encodeURIComponent(inviteToken) : "");
+  const LOGIN_RETURN = "login.html?next=" + encodeURIComponent(returnPath);
 
   function setStatus(message) {
     const status = document.getElementById("prStatus");
@@ -99,6 +104,54 @@
     const btn = document.getElementById("goToPaymentBtn");
     if (btn) btn.classList.toggle("is-busy", busy);
   }
+
+  async function activateInvitation() {
+    if (checkoutInFlight) return;
+    setBusy(true);
+    setStatus("Checking your invitation and email verification...");
+    try {
+      await currentUser.reload();
+      const resendButton = document.getElementById("resendVerificationBtn");
+      resendButton.hidden = currentUser.emailVerified;
+      if (!currentUser.emailVerified) {
+        setStatus("Check your inbox and verify your email, then select Activate membership. You can also resend the verification email below.");
+        return;
+      }
+      const result = await callFunctionsApi("/redeem-founding-invite", {
+        user: currentUser, body: { token: inviteToken }
+      });
+      if (!result || result.access !== true) throw new Error("Invitation activation was not confirmed.");
+      await currentUser.getIdToken(true);
+      // Remove the single-use credential from browser history after activation.
+      window.history.replaceState(null, "", "payment-required.html");
+      window.location.href = "dashboard.html";
+    } catch (error) {
+      setStatus("We could not activate your invitation. Check that your verified email matches the invitation and that the link is valid, then retry or contact support.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (inviteToken) {
+    document.getElementById("goToPaymentBtn").textContent = "Activate membership";
+    document.getElementById("tierGrid").hidden = true;
+    document.querySelector(".tier-select-label").hidden = true;
+    document.querySelector(".pr-title").textContent = "Activate your vendor invitation";
+    document.querySelector(".pr-text").textContent = "Verify your email address to activate your invitation. No payment is taken through this invitation flow.";
+  }
+
+  document.getElementById("resendVerificationBtn").addEventListener("click", async function() {
+    if (!currentUser || this.disabled) return;
+    this.disabled = true;
+    try {
+      await sendEmailVerification(currentUser);
+      setStatus("Verification email sent. Check your inbox, verify your email, then select Activate membership.");
+    } catch (error) {
+      setStatus("We could not send the verification email. Please try again shortly or contact support.");
+    } finally {
+      this.disabled = false;
+    }
+  });
 
   function inEmbeddedFrame() {
     try { return window.self !== window.top; } catch (e) { return true; }
@@ -197,6 +250,12 @@
       return;
     }
 
+    if (inviteToken) {
+      event.preventDefault();
+      await activateInvitation();
+      return;
+    }
+
     if (checkoutInFlight) {
       event.preventDefault();
       return;
@@ -247,6 +306,10 @@
       return;
     }
     currentUser = user;
+    if (inviteToken) {
+      await activateInvitation();
+      return;
+    }
     bindPaymentLink(selectedTier);
     setStatus("Checking your membership\u2026");
     try {

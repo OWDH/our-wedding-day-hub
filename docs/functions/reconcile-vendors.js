@@ -10,9 +10,10 @@ let auditStage = "initialisation";
 async function main() {
   const apply = process.argv.includes("--apply");
   const project = "ourweddingdayhub";
-  const admin = require("firebase-admin");
-  admin.initializeApp({ projectId: project });
-  const db = admin.firestore();
+  const { initializeApp } = require("firebase-admin/app");
+  const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+  initializeApp({ projectId: project });
+  const db = getFirestore();
   auditStage = "stripe_secret_access";
   const secret = process.env.STRIPE_SECRET_KEY || execFileSync("gcloud", ["secrets", "versions", "access", "latest",
     "--secret=STRIPE_SECRET_KEY", "--project=" + project], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
@@ -54,8 +55,8 @@ async function main() {
         const fresh = await tx.get(ref);
         const original = vendorSnap.docs.find(d => d.id === row.uid);
         if (!fresh.exists || !fresh.updateTime.isEqual(original.updateTime)) throw new Error("Account changed during audit; rerun before applying.");
-        tx.set(ref, { ...row.patch, updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          paymentVerifiedAt: admin.firestore.FieldValue.serverTimestamp(), paymentVerificationSource: "stripe_subscription",
+        tx.set(ref, { ...row.patch, updatedAt: FieldValue.serverTimestamp(),
+          paymentVerifiedAt: FieldValue.serverTimestamp(), paymentVerificationSource: "stripe_subscription",
           paymentReconciliationPrevious: row.before }, { merge: true });
       });
       row.result = "updated"; applied++;
