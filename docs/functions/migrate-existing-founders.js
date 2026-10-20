@@ -28,9 +28,11 @@ function decision(vendor, user, auth) {
   if (!user || user.role !== "vendor") return "missing_or_nonvendor_user";
   if (!auth || auth.disabled) return "missing_or_disabled_auth";
   if (!normalEmail(auth.email)) return "missing_auth_email";
-  for (const record of [vendor, user]) {
-    if (record.email && normalEmail(record.email) !== normalEmail(auth.email)) return "email_mismatch";
-  }
+  // vendors.email is an independently editable public contact address (dashboard.html).
+  // Identity is the shared document UID plus the users/Auth email, never that contact address.
+  if (user.email && normalEmail(user.email) !== normalEmail(auth.email)) return "email_mismatch";
+  if (vendor.email && normalEmail(vendor.email) !== normalEmail(auth.email)
+    && normalEmail(user.email) !== normalEmail(auth.email)) return "email_mismatch";
   if (auth.customClaims && auth.customClaims[CLAIM] === false) return "explicit_server_denial";
   if (auth.customClaims && auth.customClaims[CLAIM] === true) return "already_granted";
   return "grant";

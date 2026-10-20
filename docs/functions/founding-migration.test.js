@@ -20,9 +20,17 @@ test("restricted, mismatched and explicitly denied accounts stay ungranted", () 
   assert.equal(decision({ founding: true, accountStatus: "suspended" }, user, auth), "restricted_vendor");
   assert.equal(decision({ founding: true }, { role: "couple" }, auth), "missing_or_nonvendor_user");
   assert.equal(decision({ founding: true }, user, { ...auth, disabled: true }), "missing_or_disabled_auth");
-  assert.equal(decision({ founding: true, email: "other@example.test" }, user, auth), "email_mismatch");
+  assert.equal(decision({ founding: true }, { ...user, email: "other@example.test" }, auth), "email_mismatch");
   assert.equal(decision({ founding: true }, user, { ...auth, customClaims: { owdhComplimentaryVendor: false } }), "explicit_server_denial");
   assert.equal(decision({ founding: true }, user, { ...auth, customClaims: { owdhComplimentaryVendor: true } }), "already_granted");
+});
+test("public vendor contact email may differ only when the user email confirms the Auth identity", () => {
+  const vendor = { founding: true, email: "contact@example.test" };
+  assert.equal(decision(vendor, user, auth), "grant");
+  assert.equal(decision(vendor, { role: "vendor" }, auth), "email_mismatch");
+  assert.equal(decision(vendor, { ...user, email: vendor.email }, auth), "email_mismatch");
+  assert.equal(decision(vendor, user, { ...auth, disabled: true }), "missing_or_disabled_auth");
+  assert.equal(decision(vendor, user, { ...auth, customClaims: { owdhComplimentaryVendor: false } }), "explicit_server_denial");
 });
 test("claim merge preserves unrelated claims and rejects oversized Auth payloads", () => {
   assert.deepEqual(claimsWithGrant({ customClaims: { anotherGrant: "keep" } }), { anotherGrant: "keep", owdhComplimentaryVendor: true });
