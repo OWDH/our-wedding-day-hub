@@ -39,9 +39,10 @@ async function main() {
   if (invoice.status !== "paid" || invoice.currency !== "aud" || invoice.amount_paid <= 0) throw new Error("Expected a paid AUD invoice");
   const sub = await stripe.subscriptions.retrieve(invoiceSubscriptionId(invoice));
   if (sub.status !== "active" || !membershipPlanFromSubscription(sub)) throw new Error("Expected an active OWDH membership");
-  const admin = require("firebase-admin");
-  admin.initializeApp({projectId:project});
-  const db = admin.firestore();
+  const { initializeApp, deleteApp } = require("firebase-admin/app");
+  const { getFirestore } = require("firebase-admin/firestore");
+  const app = initializeApp({projectId:project});
+  const db = getFirestore(app);
   const matches = await db.collection("vendors").where("stripeSubscriptionId", "==", sub.id).limit(2).get();
   if (matches.size !== 1 || matches.docs[0].data().accountStatus && matches.docs[0].data().accountStatus !== "active") throw new Error("Vendor identity or restriction needs review");
   let event = null;
@@ -54,7 +55,7 @@ async function main() {
   const before = await eventRef.get();
   if (before.exists && before.data().status === "processed") {
     console.log("This event was already processed. Use Stripe delivery status to verify a further retry.");
-    await admin.app().delete(); return;
+    await deleteApp(app); return;
   }
   stage = "stripe_cli_replay";
   console.log("Resending the existing paid-invoice event through Stripe; this does not create a payment.");
@@ -63,20 +64,20 @@ async function main() {
   });
   if (result.error || result.status !== 0) {
     console.log("Stripe CLI replay did not complete. Install the official CLI if missing; otherwise check destination permissions. No payment was created.");
-    process.exitCode=1; await admin.app().delete(); return;
+    process.exitCode=1; await deleteApp(app); return;
   }
   stage = "verify_delivery";
   for (let attempt=0;attempt<12;attempt++) {
     const receipt = await eventRef.get();
     if (receipt.exists && receipt.data().status === "processed") {
       console.log("REAL STRIPE EVENT PROCESSED: signature accepted and handler completed.");
-      await admin.app().delete(); return;
+      await deleteApp(app); return;
     }
     if (receipt.exists && receipt.data().status === "failed") throw new Error("Webhook processing failed");
     await new Promise(resolve=>setTimeout(resolve,2500));
   }
   console.log("Replay requested; processing not confirmed. Check Stripe Event deliveries for the HTTP status.");
-  process.exitCode=1; await admin.app().delete();
+  process.exitCode=1; await deleteApp(app);
 }
 const deadline = setTimeout(() => { console.error("Preflight time limit reached at stage:",stage); process.exit(1); },150000);
 main().catch(error => {

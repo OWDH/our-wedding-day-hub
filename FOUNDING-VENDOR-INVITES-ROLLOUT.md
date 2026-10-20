@@ -51,3 +51,13 @@ Revert only the frontend if authorised backend deployment fails; do not grant me
 - Post-publication Firebase Rules Playground checks: unauthenticated invitation read **denied**; simulated signed-in vendor invitation read **denied**; public vendor-profile read **allowed**. Synthetic document paths were used; no production test records were created or modified. These simulations do not replace authenticated customer-journey testing.
 - Code validation before publication: 64 API/frontend/reconciliation regressions plus 8 Firestore emulator tests passed; GitHub Actions run `39344191034` passed both jobs.
 - Remaining blocker after rules publication: restore an authorised deployment runtime, provision the secret, independently confirm founding-vendor entitlements, migrate claims, deploy Functions, and run authenticated production QA before merging the frontend. No real charges, vendor records, Auth claims or staff permissions have been changed during this execution.
+
+
+### Node 22 dependency remediation before manual deployment
+
+- The Cloud Shell installation and 64 regressions passed under Node 22.23.3; Firebase Admin and sharp loaded successfully. Registry audit identified 10 moderate runtime dependency findings.
+- Upgraded and pinned Firebase Admin 14.5.0 and Firebase Functions 7.4.0. Converted production and maintenance scripts from the removed namespaced Admin API to modular app, Auth, Firestore and Storage imports. Preserved the existing handlers, secret bindings, subscription logic and claims merge behavior.
+- Pinned the transitive `qs` dependency to 6.16.1 through an override, retaining the application's existing Express 4 API. No forced dependency upgrade command is required on the deployment host.
+- Added a regression that loads all three production exports with the real SDKs, checks required Admin APIs and loads sharp without contacting production. Updated boundary mocks for the modular SDK.
+- Validation: 65 regressions passed with Node 22; `npm audit --omit=dev --json` reported zero known vulnerabilities. CI now audits runtime dependencies at moderate severity or above.
+- Manual operator must pull this commit, run `npm ci`, `npm test` (65 tests) and `npm audit --omit=dev` before preparing private backups and the approved founding-vendor migration. No Functions deployment or vendor/Auth mutation has been performed by this patch.

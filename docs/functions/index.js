@@ -1,7 +1,10 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { onObjectFinalized } = require("firebase-functions/v2/storage");
 const { defineSecret } = require("firebase-functions/params");
-const admin = require("firebase-admin");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
+const { getStorage } = require("firebase-admin/storage");
 const express = require("express");
 const cors = require("cors");
 const Stripe = require("stripe");
@@ -35,8 +38,8 @@ const {
   nextCheckoutAttempt
 } = require("./membership");
 
-admin.initializeApp();
-const db = admin.firestore();
+initializeApp();
+const db = getFirestore();
 const stripeSecret = defineSecret("STRIPE_SECRET_KEY");
 const foundingInviteKey = defineSecret("FOUNDING_INVITE_SIGNING_KEY");
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
@@ -59,7 +62,7 @@ app.use((req, res, next) => {
 exports.convertToWebP = onObjectFinalized({ memory: "512MiB", timeoutSeconds: 120 }, async (event) => {
   const filePath = event.data.name;
   const contentType = event.data.contentType;
-  const bucket = admin.storage().bucket(event.data.bucket);
+  const bucket = getStorage().bucket(event.data.bucket);
   if (!contentType || !contentType.startsWith("image/")) return;
   if (contentType === "image/webp") return;
   if (filePath.includes("_webp") || filePath.includes("thumb_")) return;
@@ -134,7 +137,7 @@ async function getConstantContactAccessToken() {
     accessToken: data.access_token,
     refreshToken: data.refresh_token || refreshToken,
     expiresAt: now + data.expires_in * 1000,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
   return data.access_token;
 }
@@ -142,7 +145,7 @@ async function getConstantContactAccessToken() {
 function getStripe() { return new Stripe(stripeSecret.value(), { timeout: 10000, maxNetworkRetries: 0 }); }
 
 async function hasServerComplimentaryGrant(uid) {
-  const user = await admin.auth().getUser(uid);
+  const user = await getAuth().getUser(uid);
   return hasVerifiedComplimentaryClaim(user);
 }
 
@@ -150,7 +153,7 @@ app.post("/redeem-founding-invite", async (req, res) => {
   try {
     const decoded = await requireFirebaseUser(req);
     await requireVendorAccount(decoded.uid);
-    const user = await admin.auth().getUser(decoded.uid);
+    const user = await getAuth().getUser(decoded.uid);
     if (!user.email || user.emailVerified !== true) {
       return res.status(403).json({ error: "Verify your email address before redeeming an invitation." });
     }
@@ -173,16 +176,16 @@ app.post("/redeem-founding-invite", async (req, res) => {
       if (invite.redeemedBy || !isValidInviteRecord(invite, user.email)) {
         throw Object.assign(new Error("Invalid, expired or already used invitation."), { status: 403 });
       }
-      tx.update(inviteRef, { redeemedBy: decoded.uid, redeemedAt: admin.firestore.FieldValue.serverTimestamp() });
+      tx.update(inviteRef, { redeemedBy: decoded.uid, redeemedAt: FieldValue.serverTimestamp() });
       return { granted: true };
     });
     // If a claim write fails, retrying the same redemption is safe.
     if (result.granted) {
-      const latest = await admin.auth().getUser(decoded.uid);
-      await admin.auth().setCustomUserClaims(decoded.uid, {
+      const latest = await getAuth().getUser(decoded.uid);
+      await getAuth().setCustomUserClaims(decoded.uid, {
         ...(latest.customClaims || {}), [COMPLIMENTARY_CLAIM]: true
       });
-      await vendorRef.set({ updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      await vendorRef.set({ updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     }
     res.json({ access: true, source: "server_invitation" });
   } catch (error) {
@@ -200,7 +203,7 @@ async function requireFirebaseUser(req) {
     throw err;
   }
   try {
-    return await admin.auth().verifyIdToken(header.slice(7), true);
+    return await getAuth().verifyIdToken(header.slice(7), true);
   } catch (error) {
     const err = new Error("Sign in required.");
     err.status = 401;
@@ -300,8 +303,8 @@ async function applyGrantFromSession(session, fallbackUid) {
     plan: session.metadata && session.metadata.plan,
     subscriptionStatus
   });
-  patch.paidAt = admin.firestore.FieldValue.serverTimestamp();
-  patch.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+  patch.paidAt = FieldValue.serverTimestamp();
+  patch.updatedAt = FieldValue.serverTimestamp();
   await db.collection("vendors").doc(uid).set(patch, { merge: true });
   return { uid, access: subscriptionGrantsAccess(subscriptionStatus) };
 }
@@ -342,7 +345,7 @@ async function applySubscriptionUpdate(subscription, fallbackUid) {
   const patch = subscriptionGrantsAccess(status)
     ? grantMembershipPatch({ customerId: stripeObjectId(subscription.customer), subscriptionId: subscription.id, plan, subscriptionStatus: status, existingTier: vendor.membershipTier || vendor.tier })
     : revokeMembershipPatch(status);
-  patch.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+  patch.updatedAt = FieldValue.serverTimestamp();
   await vendorRef.set(patch, { merge: true });
 }
 
@@ -427,7 +430,7 @@ app.post("/create-checkout-session", async (req, res) => {
       stripeCustomerId: customerId,
       stripeCheckoutSessionId: session.id,
       stripeCheckoutAttempt: attempt,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
     res.json({ url: session.url });
   } catch (error) {
@@ -576,15 +579,15 @@ async function beginStripeEvent(event) {
     const existing = snap.exists ? snap.data() : null;
     const decision = stripeEventClaimDecision(existing);
     if (decision !== "claim") return decision;
-    tx.set(ref, { status: "processing", type: event.type, startedAtMs: Date.now(), startedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(ref, { status: "processing", type: event.type, startedAtMs: Date.now(), startedAt: FieldValue.serverTimestamp() }, { merge: true });
     return "claimed";
   });
 }
 async function markStripeEventProcessed(event) {
-  await db.collection("stripeEvents").doc(event.id).set({ status: "processed", type: event.type, processedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  await db.collection("stripeEvents").doc(event.id).set({ status: "processed", type: event.type, processedAt: FieldValue.serverTimestamp() }, { merge: true });
 }
 async function markStripeEventFailed(event) {
-  await db.collection("stripeEvents").doc(event.id).set({ status: "failed", type: event.type, failedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  await db.collection("stripeEvents").doc(event.id).set({ status: "failed", type: event.type, failedAt: FieldValue.serverTimestamp() }, { merge: true });
 }
 async function handleStripeEvent(event) {
   switch (event.type) {

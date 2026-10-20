@@ -24,7 +24,11 @@ function loadApi({ vendor = {}, userRole = "vendor", stripeError = false, stripe
     "firebase-functions/v2/https": { onRequest: (_opts, fn) => fn },
     "firebase-functions/v2/storage": { onObjectFinalized: () => {} },
     "firebase-functions/params": { defineSecret: name => ({ value: () => name === "FOUNDING_INVITE_SIGNING_KEY" ? inviteSecret : "stub" }) },
-    "firebase-admin": admin, express: Object.assign(() => app, { json: () => {}, raw: () => {} }),
+    "firebase-admin/app": { initializeApp: admin.initializeApp },
+    "firebase-admin/firestore": { getFirestore: admin.firestore, FieldValue: admin.firestore.FieldValue },
+    "firebase-admin/auth": { getAuth: admin.auth },
+    "firebase-admin/storage": { getStorage: () => ({}) },
+    express: Object.assign(() => app, { json: () => {}, raw: () => {} }),
     "./founding-invites": require("./founding-invites"), cors: () => {}, stripe: Stripe, resend: { Resend: function() { this.emails = { send: async () => resendResult }; } }, sharp: () => {}, "./membership": membership
   };
   const exposed = {};

@@ -16,6 +16,9 @@ jobs:
           cache-dependency-path: docs/functions/package-lock.json
       - run: npm ci
         working-directory: docs/functions
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=moderate
+        working-directory: docs/functions
       - name: Verify native image dependency
         run: node -e 'require("sharp"); console.log("Native image dependency loaded")'
         working-directory: docs/functions
