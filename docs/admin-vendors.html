@@ -438,6 +438,7 @@
 </main>
 
 <script type="module">
+import { withRegistrationCategories } from "./registration-categories.js";
 import { db, auth, storage, collection, getDocs, doc, updateDoc, onAuthStateChanged, ref, uploadBytes, getDownloadURL } from "./firebase.js";
 import { LOCATION_DATA } from "./locations.js";
 
@@ -920,7 +921,7 @@ function renderStats() {
 async function loadVendors() {
   vendorList.innerHTML="<p class='empty-list-msg'>Loading vendors…</p>";
   const snap=await getDocs(collection(db,"vendors"));
-  vendors=snap.docs.map(d=>({id:d.id,...d.data()}));
+  vendors=snap.docs.map(d=>({id:d.id,...withRegistrationCategories(d.data())}));
   renderStats(); renderVendorList();
   if(selectedVendorId && vendors.find(v=>v.id===selectedVendorId)) openVendor(selectedVendorId,false);
 }

@@ -1,3 +1,4 @@
+import { withRegistrationCategories } from "./registration-categories.js";
 // firebase.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import {
@@ -121,6 +122,20 @@ async function ensureSignupDocument(reference, initialData) {
   });
 }
 
+// Run after the restricted signup create. This profile-only transaction is
+// allowed by existing rules and never overwrites a vendor's saved selections.
+async function ensureRegistrationCategories(vendorRef) {
+  return runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(vendorRef);
+    if (!snapshot.exists()) return false;
+    const vendor = snapshot.data();
+    const mapped = withRegistrationCategories(vendor);
+    if (mapped === vendor) return false;
+    transaction.update(vendorRef, { categories: mapped.categories });
+    return true;
+  });
+}
+
 export {
   app,
   auth,
@@ -147,6 +162,7 @@ export {
   serverTimestamp,
   runTransaction,
   ensureSignupDocument,
+  ensureRegistrationCategories,
   limit,
   ref,
   uploadBytes,

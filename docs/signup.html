@@ -142,7 +142,7 @@
 (function () {
   'use strict';
 
-  const BUILD = '20261014-1';
+  const BUILD = '20261029-magician-1';
   const state = {
     role: 'vendor',
     tier: 'edit',
@@ -289,7 +289,7 @@
         fb = await withTimeout(loadFirebase(true), 12000, 'Registration service could not be loaded.');
       }
 
-      const { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp, callFunctionsApi, getDoc, ensureSignupDocument, sendEmailVerification } = fb;
+      const { auth, db, createUserWithEmailAndPassword, doc, setDoc, serverTimestamp, callFunctionsApi, getDoc, ensureSignupDocument, ensureRegistrationCategories, sendEmailVerification } = fb;
       if (!auth || !db || !createUserWithEmailAndPassword || !setDoc) {
         throw new Error('Registration service did not initialise correctly.');
       }
@@ -320,6 +320,7 @@
       if (state.role === 'vendor') {
         const existingVendor = await getDoc(doc(db, 'vendors', uid));
         if (existingVendor.exists()) {
+          await retryOnce(() => ensureRegistrationCategories(doc(db, 'vendors', uid)));
           await ensureSignupDocument(doc(db, 'users', uid), userData);
           message('Your account already exists. Opening your dashboard...');
           window.location.href = 'dashboard.html';
@@ -346,6 +347,7 @@
         // existing documents and payment fields are never replaced.
         await retryOnce(() => ensureSignupDocument(doc(db, 'users', uid), userData));
         await retryOnce(() => ensureSignupDocument(doc(db, 'vendors', uid), vendorData));
+        await retryOnce(() => ensureRegistrationCategories(doc(db, 'vendors', uid)));
 
         if (hasInvite) {
           // Email ownership must be verified before the backend grants access.

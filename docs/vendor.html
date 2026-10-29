@@ -463,6 +463,7 @@
 </footer>
 
 <script type="module">
+import { withRegistrationCategories } from "./registration-categories.js";
 import { db, auth, doc, getDoc, updateDoc, increment, onAuthStateChanged, signOut, collection, addDoc, serverTimestamp, query, where, getDocs } from "./firebase.js";
 
 const params   = new URLSearchParams(window.location.search);
@@ -792,7 +793,7 @@ async function loadVendor() {
   try {
     var snap = await getDoc(doc(db,"vendors",vendorId));
     if (!snap.exists()) { businessNameEl.textContent = "Vendor not found"; sidebarBusinessNameEl.textContent = "Vendor not found"; return; }
-    vendorData = snap.data();
+    vendorData = withRegistrationCategories(snap.data());
     trackView(vendorId);
 
     var name = vendorData.businessName || "Vendor";

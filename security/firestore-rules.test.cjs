@@ -79,3 +79,37 @@ test("conversation participants can message but outsiders cannot read, impersona
   await assertFails(updateDoc(doc(db("vendor"), "conversations/chat"), { coupleId: "other" }));
   await assertSucceeds(updateDoc(doc(db("vendor"), "conversations/chat"), { vendorUnread: 0 }));
 });
+
+
+test("Magician signup mapping and category persistence obey existing owner/admin rules", async () => {
+  const vm = require('node:vm');
+  const {runTransaction} = require('firebase/firestore');
+  const ownerDb = db('vendor');
+  const ref = doc(ownerDb, 'vendors/vendor');
+  await assertSucceeds(setDoc(ref, {...signup, primaryCategory: 'Magician'}));
+  const helper = fs.readFileSync('../docs/registration-categories.js', 'utf8').replace('export ', '');
+  const source = fs.readFileSync('../docs/firebase.js', 'utf8');
+  const transaction = source.slice(source.indexOf('async function ensureRegistrationCategories'), source.indexOf('\nexport {'));
+  // The VM has its own Object prototype; convert the patch back into the
+  // SDK realm without changing its data before Firestore validates it.
+  const context = vm.createContext({db: ownerDb, runTransaction: (database, callback) =>
+    runTransaction(database, tx => callback({
+      get: reference => tx.get(reference),
+      update: (reference, patch) => tx.update(reference, JSON.parse(JSON.stringify(patch)))
+    }))});
+  vm.runInContext(helper + transaction, context);
+  await assertSucceeds(context.ensureRegistrationCategories(ref));
+  require('node:assert/strict').deepEqual((await getDoc(ref)).data().categories, ['magician']);
+  await assertSucceeds(updateDoc(ref, {categories:['magician','wedding_dj']}));
+  require('node:assert/strict').deepEqual((await getDoc(ref)).data().categories, ['magician','wedding_dj']);
+  await assertSucceeds(updateDoc(ref, {categories:[]}));
+  await context.ensureRegistrationCategories(ref);
+  require('node:assert/strict').deepEqual((await getDoc(ref)).data().categories, []);
+  await assertFails(updateDoc(doc(db('other'), 'vendors/vendor'), {categories:['magician']}));
+  const adminDb = env.authenticatedContext('admin-qa', {email:'robyn@ourweddingdayhub.com'}).firestore();
+  const adminRef = doc(adminDb, 'vendors/vendor');
+  await assertSucceeds(updateDoc(adminRef, {categories:['magician'],category:'magician'}));
+  require('node:assert/strict').deepEqual((await getDoc(adminRef)).data().categories, ['magician']);
+  await assertSucceeds(updateDoc(adminRef, {categories:['wedding_band'],category:'wedding_band'}));
+  require('node:assert/strict').deepEqual((await getDoc(adminRef)).data().categories, ['wedding_band']);
+});

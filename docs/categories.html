@@ -170,6 +170,7 @@
 </footer>
 
 <script type="module">
+import { withRegistrationCategories } from "./registration-categories.js";
     import { db, auth, collection, getDocs, onAuthStateChanged, signOut } from "./firebase.js";
     const categoriesGrid=document.getElementById("categoriesGrid");const categoriesEmpty=document.getElementById("categoriesEmpty");const resultsCount=document.getElementById("resultsCount");const categoryPageTitle=document.getElementById("categoryPageTitle");const categoryPageSubtitle=document.getElementById("categoryPageSubtitle");const categoriesFilterBar=document.getElementById("categoriesFilterBar");const mainCategorySelect=document.getElementById("mainCategorySelect");const subCategorySelect=document.getElementById("subCategorySelect");const locationSearch=document.getElementById("locationSearch");const keywordSearch=document.getElementById("keywordSearch");const dateSearch=document.getElementById("dateSearch");const searchBtn=document.getElementById("searchBtn");const clearFiltersBtn=document.getElementById("clearFiltersBtn");
     const params=new URLSearchParams(window.location.search);const selectedType=(params.get("type")||"all").toLowerCase();const selectedSubcategory=(params.get("subcategory")||"all").toLowerCase();const selectedLocation=(params.get("location")||"").trim();const selectedSearch=(params.get("search")||"").trim();
@@ -249,7 +250,7 @@
       try{
         const snapshot=await getDocs(collection(db,"vendors"));
         const liveVendors=[];
-        snapshot.forEach((docSnap)=>{const vendor=docSnap.data();if(vendor&&vendor.businessName&&vendor.profileVisible!==false&&vendor.published!==false)liveVendors.push({...vendor,docId:docSnap.id})});
+        snapshot.forEach((docSnap)=>{const vendor=withRegistrationCategories(docSnap.data());if(vendor&&vendor.businessName&&vendor.profileVisible!==false&&vendor.published!==false)liveVendors.push({...vendor,docId:docSnap.id})});
         /* ── initial shuffle so first load is random ── */
         for(let i=liveVendors.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[liveVendors[i],liveVendors[j]]=[liveVendors[j],liveVendors[i]];}
         allLiveVendors=liveVendors;

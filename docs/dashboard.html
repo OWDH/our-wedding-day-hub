@@ -663,6 +663,7 @@
 </script>
 
 <script type="module">
+import { withRegistrationCategories } from "./registration-categories.js";
 import {
   auth, db, storage, onAuthStateChanged, signOut, doc, getDoc, setDoc, serverTimestamp,
   ref, uploadBytes, getDownloadURL, collection, addDoc, getDocs,
@@ -1035,7 +1036,7 @@ import { updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/
     }
     const userData = userSnap.data();
     const vendorSnap = await getDoc(doc(db, "vendors", uid));
-    let vd = vendorSnap.exists() ? vendorSnap.data() : {};
+    let vd = vendorSnap.exists() ? withRegistrationCategories(vendorSnap.data()) : {};
 
     // A failed verification is an outage, never evidence that payment is due.
     const membership = await callFunctionsApi("/verify-membership", { user: currentUser });
@@ -1048,7 +1049,7 @@ import { updateEmail, updatePassword } from "https://www.gstatic.com/firebasejs/
     }
     // The server reconciles Stripe into Firestore before returning access.
     const refreshedVendor = await getDoc(doc(db, "vendors", uid));
-    vd = refreshedVendor.exists() ? refreshedVendor.data() : vd;
+    vd = refreshedVendor.exists() ? withRegistrationCategories(refreshedVendor.data()) : vd;
 
     currentVendorAccess = { founding: vd.founding===true, foundingVendor: vd.foundingVendor===true, paymentStatus: vd.paymentStatus||"", subscriptionActive: vd.subscriptionActive===true, paidSetupFee: vd.paidSetupFee===true, complimentaryPlan: vd.complimentaryPlan===true, plan: vd.plan||"", accessType: vd.accessType||"", membershipTier: vd.membershipTier||"", tier: vd.tier||"", shopAccess: vd.shopAccess===true, accountStatus: vd.accountStatus||"active", profileVisible: vd.profileVisible===true, published: vd.published===true };
     businessName.value = vd.businessName||""; email.value = vd.email||currentUser.email||""; accountName.value = userData.name||""; accountEmail.value = userData.email||currentUser.email||"";
@@ -1180,7 +1181,7 @@ currentGalleryVideos = Array.isArray(vd.videos) && vd.videos.length
       const placesRegions   = window._placesRegions   || regs;
       const placesLabels    = window._placesLocations || [];
       const isWorldwide     = (document.getElementById("worldwideToggle") && document.getElementById("worldwideToggle").checked) || false;
-      await setDoc(doc(db,"vendors",currentUser.uid), { uid:currentUser.uid, businessName:businessName.value.trim(), email:email.value.trim().toLowerCase(), phone:phone.value.trim(), instagram:instagram.value.trim(), website:website.value.trim(), facebook:facebook.value.trim(), tiktok:tiktok.value.trim(), youtube:youtube.value.trim(), pinterest:pinterest.value.trim(), linkedin:linkedin.value.trim(), x:x.value.trim(), serviceAreas:serviceAreas.value.trim(), displayLocation:displayLocation.value.trim(), bookingLink:bookingLink.value.trim(), availabilityStatus:availabilityStatus.value.trim(), bookingNotes:bookingNotes.value.trim(), blockedDates:currentBlockedDates, bio:bio.value.trim(), priceGuide:priceGuide.value.trim(), price:priceGuide.value.trim(), services:services.value.trim(), packages:services.value.trim(), inclusions:services.value.trim(), profileImageUrl:pi, logoUrl:li, coverImageUrl:cover, images:gi, galleryImages:gi, imageUrls:gi, videos:gv, galleryVideos:gv, videoUrls:gv, styleTags:st, categories:cats, countries:placesCountries, country:placesCountries[0]||"", states:placesStates, regions:placesRegions, serviceLocationLabels:placesLabels, worldwide:isWorldwide, profileVisible:profileLive.checked, published:profileLive.checked, showCalendar:(document.getElementById('showCalendar') && document.getElementById('showCalendar').checked) || false, updatedAt:serverTimestamp() }, { merge:true });
+      await setDoc(doc(db,"vendors",currentUser.uid), { uid:currentUser.uid, businessName:businessName.value.trim(), email:email.value.trim().toLowerCase(), phone:phone.value.trim(), instagram:instagram.value.trim(), website:website.value.trim(), facebook:facebook.value.trim(), tiktok:tiktok.value.trim(), youtube:youtube.value.trim(), pinterest:pinterest.value.trim(), linkedin:linkedin.value.trim(), x:x.value.trim(), serviceAreas:serviceAreas.value.trim(), displayLocation:displayLocation.value.trim(), bookingLink:bookingLink.value.trim(), availabilityStatus:availabilityStatus.value.trim(), bookingNotes:bookingNotes.value.trim(), blockedDates:currentBlockedDates, bio:bio.value.trim(), priceGuide:priceGuide.value.trim(), price:priceGuide.value.trim(), services:services.value.trim(), packages:services.value.trim(), inclusions:services.value.trim(), profileImageUrl:pi, logoUrl:li, coverImageUrl:cover, images:gi, galleryImages:gi, imageUrls:gi, videos:gv, galleryVideos:gv, videoUrls:gv, styleTags:st, categories:cats, category:cats[0]||"", countries:placesCountries, country:placesCountries[0]||"", states:placesStates, regions:placesRegions, serviceLocationLabels:placesLabels, worldwide:isWorldwide, profileVisible:profileLive.checked, published:profileLive.checked, showCalendar:(document.getElementById('showCalendar') && document.getElementById('showCalendar').checked) || false, updatedAt:serverTimestamp() }, { merge:true });
       currentProfileImageUrl = pi; currentLogoUrl = li; currentGalleryImages = gi; currentGalleryVideos = gv;
       currentVendorAccess = { ...currentVendorAccess, profileVisible:profileLive.checked, published:profileLive.checked };
       profileImageFile.value = ""; logoFile.value = ""; galleryImageFiles.value = ""; galleryVideoFiles.value = "";
